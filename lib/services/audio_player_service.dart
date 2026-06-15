@@ -211,12 +211,13 @@ class _PcmStreamSource extends StreamAudioSource {
     // 直播流长度未知，若 sourceLength 与 contentLength 同时为 null，
     // just_audio 在计算 contentLength 时会抛出 Null check operator 异常。
     // 这里给一个足够大的 fake 长度，让播放器认为是无尽流并持续播放。
+    // 注意：contentLength 必须保持为 null；若按 range 返回小数值（如 2），
+    // 而直播流尚未产出数据，代理会报 "No content even though contentLength > 0"。
     const fakeLength = 0x7FFFFFFFFFFFFFFF;
-    final offset = start ?? 0;
     return StreamAudioResponse(
       sourceLength: fakeLength,
-      contentLength: end != null ? end - offset : null,
-      offset: offset,
+      contentLength: null,
+      offset: start ?? 0,
       stream: _stream,
       contentType: 'audio/wav',
     );

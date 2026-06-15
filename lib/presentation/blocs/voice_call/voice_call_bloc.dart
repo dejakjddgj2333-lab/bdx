@@ -122,6 +122,12 @@ class VoiceCallBloc extends Bloc<VoiceCallEvent, VoiceCallState> {
     final type = msg['type']?.toString() ?? '';
     log('处理消息: $type');
 
+    // 追加调试日志，最多保留 30 条
+    final logEntry = _formatDebugLog(type, msg);
+    final newLogs = [...state.debugLogs, logEntry];
+    if (newLogs.length > 30) newLogs.removeAt(0);
+    emit(state.copyWith(debugLogs: newLogs));
+
     switch (type) {
       case 'session.created':
         log('session.created, 发送配置');
@@ -274,6 +280,28 @@ class VoiceCallBloc extends Bloc<VoiceCallEvent, VoiceCallState> {
         _audioPlayerService.forceReset();
       }
     });
+  }
+
+  String _formatDebugLog(String type, Map<String, dynamic> msg) {
+    final time = DateTime.now().toString().substring(11, 19);
+    switch (type) {
+      case 'response.audio.delta':
+        final delta = msg['delta']?.toString() ?? '';
+        final bytes = delta.isNotEmpty ? (delta.length * 3) ~/ 4 : 0;
+        return '[$time] $type · $bytes bytes';
+      case 'response.audio_transcript.delta':
+      case 'conversation.item.input_audio_transcription.delta':
+        final text = msg['delta']?.toString() ?? msg['text']?.toString() ?? '';
+        return '[$time] $type · "$text"';
+      case 'error':
+      case 'server.error':
+        final err = msg['error']?.toString() ?? msg.toString();
+        return '[$time] $type · $err';
+      default:
+        final preview = msg.toString();
+        final trimmed = preview.length > 120 ? '${preview.substring(0, 120)}...' : preview;
+        return '[$time] $type · $trimmed';
+    }
   }
 
   @override

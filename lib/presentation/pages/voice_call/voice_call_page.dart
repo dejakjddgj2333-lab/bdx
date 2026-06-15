@@ -142,6 +142,8 @@ class _VoiceCallPageState extends State<VoiceCallPage>
                 ),
                 const SizedBox(height: 24),
                 _buildTextDisplay(state),
+                const SizedBox(height: 12),
+                _buildDebugPanel(state),
                 const Spacer(),
                 _buildWaveAnimation(),
                 const SizedBox(height: 40),
@@ -219,6 +221,54 @@ class _VoiceCallPageState extends State<VoiceCallPage>
               : AppColors.textSecondary,
           fontSize: 15,
         ),
+      ),
+    );
+  }
+
+  Widget _buildDebugPanel(VoiceCallState state) {
+    if (state.debugLogs.isEmpty) return const SizedBox.shrink();
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.all(10),
+      constraints: const BoxConstraints(maxHeight: 160),
+      decoration: BoxDecoration(
+        color: Colors.black.withOpacity(0.35),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: AppColors.borderSubtle),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            children: [
+              Container(width: 8, height: 8, decoration: const BoxDecoration(color: Colors.green, shape: BoxShape.circle)),
+              const SizedBox(width: 6),
+              const Text(
+                '后端消息调试',
+                style: TextStyle(color: AppColors.textSecondary, fontSize: 11),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Expanded(
+            child: SingleChildScrollView(
+              reverse: true,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: state.debugLogs.map((log) {
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 3),
+                    child: Text(
+                      log,
+                      style: const TextStyle(color: Colors.white70, fontSize: 10, height: 1.3),
+                    ),
+                  );
+                }).toList(),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
