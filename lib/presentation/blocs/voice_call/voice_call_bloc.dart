@@ -215,7 +215,7 @@ class VoiceCallBloc extends Bloc<VoiceCallEvent, VoiceCallState> {
         log('AI 响应结束, 重置为 listening');
         _speakingWatchdog?.cancel();
         _lastAudioDeltaTime = null;
-        _audioPlayerService.flushAccumulatedAudio();
+        await _audioPlayerService.flushAccumulatedAudio();
         emit(state.copyWith(status: CallStatus.listening));
         _webSocketService.updateVadThreshold(0.5);
         break;
@@ -269,7 +269,7 @@ class VoiceCallBloc extends Bloc<VoiceCallEvent, VoiceCallState> {
 
   void _startSpeakingWatchdog() {
     _speakingWatchdog?.cancel();
-    _speakingWatchdog = Timer.periodic(const Duration(seconds: 2), (_) {
+    _speakingWatchdog = Timer.periodic(const Duration(seconds: 2), (_) async {
       if (state.status != CallStatus.speaking) {
         _speakingWatchdog?.cancel();
         return;
@@ -279,7 +279,7 @@ class VoiceCallBloc extends Bloc<VoiceCallEvent, VoiceCallState> {
           DateTime.now().difference(lastDelta).inSeconds >= 6) {
         log('AI speaking 超过 6 秒无新音频, 强制重置为 listening');
         _lastAudioDeltaTime = null;
-        _audioPlayerService.flushAccumulatedAudio();
+        await _audioPlayerService.flushAccumulatedAudio();
         add(const _VoiceCallForceListening());
       }
     });
@@ -287,9 +287,9 @@ class VoiceCallBloc extends Bloc<VoiceCallEvent, VoiceCallState> {
 
   void _startPlayerWatchdog() {
     _playerWatchdog?.cancel();
-    _playerWatchdog = Timer.periodic(const Duration(seconds: 3), (_) {
+    _playerWatchdog = Timer.periodic(const Duration(seconds: 3), (_) async {
       if (_audioPlayerService.isStuck) {
-        _audioPlayerService.forceReset();
+        await _audioPlayerService.forceReset();
       }
     });
   }
@@ -302,7 +302,7 @@ class VoiceCallBloc extends Bloc<VoiceCallEvent, VoiceCallState> {
     await _audioSubscription?.cancel();
     await _playerLogSubscription?.cancel();
     await _audioRecorderService.stopRecording();
-    _audioPlayerService.cancelPlaying();
+    await _audioPlayerService.cancelPlaying();
     _webSocketService.disconnect();
     return super.close();
   }

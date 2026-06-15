@@ -44,7 +44,7 @@ dependencies:
 
   # 音频 / 语音通话
   record: ^5.2.1
-  just_audio: ^0.9.42
+  flutter_pcm_sound: ^3.3.3
   audio_session: ^0.1.25
 
   # WebSocket
