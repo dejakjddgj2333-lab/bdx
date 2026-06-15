@@ -45,6 +45,20 @@ class _VoiceCallPageState extends State<VoiceCallPage>
       return;
     }
 
+    // 先查当前状态，避免已永久拒绝时反复弹窗
+    final current = await Permission.microphone.status;
+    if (!mounted) return;
+    if (current.isGranted) {
+      setState(() => _microphoneDenied = false);
+      context.read<VoiceCallBloc>().add(const VoiceCallStarted());
+      _startDurationTimer();
+      return;
+    }
+    if (current.isPermanentlyDenied || current.isRestricted) {
+      setState(() => _microphoneDenied = true);
+      return;
+    }
+
     final status = await Permission.microphone.request();
     if (!mounted) return;
     if (status.isGranted) {
@@ -318,7 +332,16 @@ class _VoiceCallPageState extends State<VoiceCallPage>
             ),
             const SizedBox(height: 24),
             ElevatedButton(
-              onPressed: _checkPermissionAndStart,
+              onPressed: () async {
+                final status = await Permission.microphone.status;
+                if (status.isPermanentlyDenied ||
+                    status.isRestricted ||
+                    status.isDenied) {
+                  await openAppSettings();
+                } else {
+                  _checkPermissionAndStart();
+                }
+              },
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primary,
                 foregroundColor: Colors.white,

@@ -354,7 +354,9 @@ class _ChatDetailPageState extends State<ChatDetailPage>
         left: 16,
         right: 16,
         top: 12,
-        bottom: MediaQuery.of(context).viewInsets.bottom + MediaQuery.of(context).padding.bottom + 12,
+        // Scaffold 的 resizeToAvoidBottomInset 已经把 body 向上顶了键盘高度，
+        // 这里只需补偿底部安全区 + 固定间距，避免双重计算。
+        bottom: MediaQuery.of(context).padding.bottom + 12,
       ),
       decoration: const BoxDecoration(
         color: AppColors.bgElevated,

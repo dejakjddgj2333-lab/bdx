@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'core/constants/app_theme.dart';
@@ -52,7 +53,7 @@ final GoRouter _router = GoRouter(
   routes: [
     GoRoute(
       path: '/',
-      pageBuilder: (context, state) => NoTransitionPage(
+      pageBuilder: (context, state) => CupertinoPage(
         key: state.pageKey,
         child: BlocProvider(
           create: (_) => getIt<ChatListBloc>()..add(const ChatListLoaded()),
@@ -64,7 +65,7 @@ final GoRouter _router = GoRouter(
       path: '/login',
       pageBuilder: (context, state) {
         final redirect = state.uri.queryParameters['redirect'];
-        return NoTransitionPage(
+        return CupertinoPage(
           key: state.pageKey,
           child: LoginPage(redirect: redirect),
         );
@@ -76,7 +77,7 @@ final GoRouter _router = GoRouter(
         final id = state.uri.queryParameters['id'];
         final agentId = state.uri.queryParameters['agentId'];
         final content = state.uri.queryParameters['content'];
-        return NoTransitionPage(
+        return CupertinoPage(
           key: state.pageKey,
           child: BlocProvider(
             create: (_) => getIt<ChatDetailBloc>(),
@@ -91,7 +92,7 @@ final GoRouter _router = GoRouter(
     ),
     GoRoute(
       path: '/agents',
-      pageBuilder: (context, state) => NoTransitionPage(
+      pageBuilder: (context, state) => CupertinoPage(
         key: state.pageKey,
         child: BlocProvider(
           create: (_) => getIt<AgentBloc>()..add(const AgentLoaded()),
@@ -101,14 +102,14 @@ final GoRouter _router = GoRouter(
     ),
     GoRoute(
       path: '/profile',
-      pageBuilder: (context, state) => NoTransitionPage(
+      pageBuilder: (context, state) => CupertinoPage(
         key: state.pageKey,
         child: const ProfilePage(),
       ),
     ),
     GoRoute(
       path: '/voice-call',
-      pageBuilder: (context, state) => NoTransitionPage(
+      pageBuilder: (context, state) => CupertinoPage(
         key: state.pageKey,
         child: BlocProvider(
           create: (_) => getIt<VoiceCallBloc>(),
