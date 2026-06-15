@@ -17,7 +17,6 @@ class VoiceCallBloc extends Bloc<VoiceCallEvent, VoiceCallState> {
 
   StreamSubscription? _messageSubscription;
   StreamSubscription? _audioSubscription;
-  StreamSubscription? _playerLogSubscription;
   Timer? _speakingWatchdog;
   Timer? _playerWatchdog;
   DateTime? _lastAudioDeltaTime;
@@ -34,7 +33,6 @@ class VoiceCallBloc extends Bloc<VoiceCallEvent, VoiceCallState> {
     on<VoiceCallMessageReceived>(_onMessageReceived);
     on<VoiceCallAudioReceived>(_onAudioReceived);
     on<VoiceCallDurationTick>(_onDurationTick);
-    on<VoiceCallPlayerLogAdded>(_onPlayerLogAdded);
     on<_VoiceCallForceListening>(_onForceListening);
   }
 
@@ -55,9 +53,6 @@ class VoiceCallBloc extends Bloc<VoiceCallEvent, VoiceCallState> {
       );
       _audioSubscription = _webSocketService.audioStream.listen(
         (data) => add(VoiceCallAudioReceived(Uint8List.fromList(data))),
-      );
-      _playerLogSubscription = _audioPlayerService.logs.listen(
-        (log) => add(VoiceCallPlayerLogAdded(log)),
       );
 
       // 2. 再初始化音频播放器；如果这里失败也不应阻断整个通话
@@ -87,7 +82,6 @@ class VoiceCallBloc extends Bloc<VoiceCallEvent, VoiceCallState> {
     _webSocketService.disconnect();
     await _messageSubscription?.cancel();
     await _audioSubscription?.cancel();
-    await _playerLogSubscription?.cancel();
     emit(const VoiceCallState());
   }
 
@@ -248,15 +242,6 @@ class VoiceCallBloc extends Bloc<VoiceCallEvent, VoiceCallState> {
     emit(state.copyWith(durationSeconds: seconds));
   }
 
-  void _onPlayerLogAdded(
-    VoiceCallPlayerLogAdded event,
-    Emitter<VoiceCallState> emit,
-  ) {
-    final newLogs = [...state.playerLogs, event.log];
-    if (newLogs.length > 40) newLogs.removeAt(0);
-    emit(state.copyWith(playerLogs: newLogs));
-  }
-
   void _onForceListening(
     _VoiceCallForceListening event,
     Emitter<VoiceCallState> emit,
@@ -300,7 +285,6 @@ class VoiceCallBloc extends Bloc<VoiceCallEvent, VoiceCallState> {
     _playerWatchdog?.cancel();
     await _messageSubscription?.cancel();
     await _audioSubscription?.cancel();
-    await _playerLogSubscription?.cancel();
     await _audioRecorderService.stopRecording();
     await _audioPlayerService.cancelPlaying();
     _webSocketService.disconnect();

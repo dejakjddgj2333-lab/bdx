@@ -45,15 +45,6 @@ class VoiceCallDurationTick extends VoiceCallEvent {
   const VoiceCallDurationTick();
 }
 
-class VoiceCallPlayerLogAdded extends VoiceCallEvent {
-  final String log;
-
-  const VoiceCallPlayerLogAdded(this.log);
-
-  @override
-  List<Object?> get props => [log];
-}
-
 class _VoiceCallForceListening extends VoiceCallEvent {
   const _VoiceCallForceListening();
 }

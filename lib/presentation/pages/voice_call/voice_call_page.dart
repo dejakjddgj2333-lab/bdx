@@ -140,9 +140,6 @@ class _VoiceCallPageState extends State<VoiceCallPage>
                   ),
                 ),
                 const SizedBox(height: 24),
-                _buildTextDisplay(state),
-                const SizedBox(height: 12),
-                _buildPlayerLogPanel(state),
                 const Spacer(),
                 _buildWaveAnimation(),
                 const SizedBox(height: 40),
@@ -199,87 +196,6 @@ class _VoiceCallPageState extends State<VoiceCallPage>
           ),
         );
       },
-    );
-  }
-
-  Widget _buildTextDisplay(VoiceCallState state) {
-    if (state.currentText.isEmpty) return const SizedBox.shrink();
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 32),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.glassWhite,
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Text(
-        state.currentText,
-        textAlign: TextAlign.center,
-        style: TextStyle(
-          color: state.currentSpeaker == 'user'
-              ? Colors.white
-              : AppColors.textSecondary,
-          fontSize: 15,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildPlayerLogPanel(VoiceCallState state) {
-    if (state.playerLogs.isEmpty) return const SizedBox.shrink();
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
-      padding: const EdgeInsets.all(10),
-      constraints: const BoxConstraints(maxHeight: 180),
-      decoration: BoxDecoration(
-        color: Colors.black.withOpacity(0.35),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: AppColors.borderSubtle),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Row(
-            children: [
-              Container(
-                width: 8,
-                height: 8,
-                decoration: const BoxDecoration(
-                  color: Colors.orange,
-                  shape: BoxShape.circle,
-                ),
-              ),
-              const SizedBox(width: 6),
-              const Text(
-                '播放器状态日志',
-                style: TextStyle(color: AppColors.textSecondary, fontSize: 11),
-              ),
-            ],
-          ),
-          const SizedBox(height: 6),
-          Expanded(
-            child: SingleChildScrollView(
-              reverse: true,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: state.playerLogs.map((log) {
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 3),
-                    child: Text(
-                      log,
-                      style: const TextStyle(
-                        color: Colors.white70,
-                        fontSize: 10,
-                        height: 1.3,
-                      ),
-                    ),
-                  );
-                }).toList(),
-              ),
-            ),
-          ),
-        ],
-      ),
     );
   }
 

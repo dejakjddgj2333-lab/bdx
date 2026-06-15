@@ -8,16 +8,11 @@ import 'package:flutter_pcm_sound/flutter_pcm_sound.dart';
 ///
 /// 直接播放后端返回的 PCM 裸流，无需 WAV 头或 HTTP 代理。
 class AudioPlayerService {
-  final StreamController<String> _logController = StreamController<String>.broadcast();
-
   bool _initialized = false;
   DateTime? _playStartTime;
 
   static const int _sampleRate = 24000;
   static const int _channels = 1;
-
-  /// 播放器内部日志流，供 UI 实时显示调试用。
-  Stream<String> get logs => _logController.stream;
 
   Future<void> init() async {
     if (_initialized) return;
@@ -46,6 +41,7 @@ class AudioPlayerService {
         avAudioSessionCategoryOptions:
             AVAudioSessionCategoryOptions.defaultToSpeaker |
                 AVAudioSessionCategoryOptions.allowBluetooth,
+        avAudioSessionMode: AVAudioSessionMode.voiceChat,
         androidAudioAttributes: const AndroidAudioAttributes(
           contentType: AndroidAudioContentType.speech,
           usage: AndroidAudioUsage.voiceCommunication,
@@ -53,7 +49,7 @@ class AudioPlayerService {
         androidAudioFocusGainType: AndroidAudioFocusGainType.gain,
       ));
       await session.setActive(true);
-      _emitLog('音频会话配置完成: defaultToSpeaker');
+      _emitLog('音频会话配置完成: voiceChat + defaultToSpeaker');
     } catch (e) {
       _emitLog('音频会话配置失败: $e');
     }
@@ -71,6 +67,7 @@ class AudioPlayerService {
             ? AVAudioSessionCategoryOptions.defaultToSpeaker |
                 AVAudioSessionCategoryOptions.allowBluetooth
             : AVAudioSessionCategoryOptions.allowBluetooth,
+        avAudioSessionMode: AVAudioSessionMode.voiceChat,
         androidAudioAttributes: const AndroidAudioAttributes(
           contentType: AndroidAudioContentType.speech,
           usage: AndroidAudioUsage.voiceCommunication,
@@ -154,8 +151,5 @@ class AudioPlayerService {
 
   void _emitLog(String message) {
     log(message);
-    if (!_logController.isClosed) {
-      _logController.add(message);
-    }
   }
 }
