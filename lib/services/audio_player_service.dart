@@ -21,8 +21,8 @@ class AudioPlayerService {
   static const int _sampleRate = 24000;
   static const int _channels = 1;
 
-  /// 24kHz 16-bit mono，200ms 抖动缓冲 = 9600 bytes
-  static const int _jitterSize = 9600;
+  /// 24kHz 16-bit mono，100ms 抖动缓冲 = 4800 bytes
+  static const int _jitterSize = 4800;
 
   Future<void> init() async {
     if (_initialized) return;
@@ -44,7 +44,7 @@ class AudioPlayerService {
         androidAudioFocusGainType: AndroidAudioFocusGainType.gain,
       ));
       await session.setActive(true);
-      log('音频会话配置完成');
+      log('音频会话配置完成, 采样率=$_sampleRate, 声道=$_channels');
     } catch (e) {
       log('音频会话配置失败（继续初始化播放器）: $e');
     }
@@ -74,7 +74,25 @@ class AudioPlayerService {
   }
 
   Future<void> setSpeaker(bool useSpeaker) async {
-    // TODO: 实现扬声器/听筒切换
+    try {
+      final session = await AudioSession.instance;
+      await session.configure(AudioSessionConfiguration(
+        avAudioSessionCategory: AVAudioSessionCategory.playAndRecord,
+        avAudioSessionCategoryOptions: useSpeaker
+            ? AVAudioSessionCategoryOptions.defaultToSpeaker |
+                AVAudioSessionCategoryOptions.allowBluetooth
+            : AVAudioSessionCategoryOptions.allowBluetooth,
+        androidAudioAttributes: const AndroidAudioAttributes(
+          contentType: AndroidAudioContentType.speech,
+          usage: AndroidAudioUsage.voiceCommunication,
+        ),
+        androidAudioFocusGainType: AndroidAudioFocusGainType.gain,
+      ));
+      await session.setActive(true);
+      log('音频输出切换到: ${useSpeaker ? "扬声器" : "听筒"}');
+    } catch (e) {
+      log('切换扬声器失败: $e');
+    }
   }
 
   /// 接收 AI 返回的 PCM 数据并写入流。
@@ -83,12 +101,16 @@ class AudioPlayerService {
   /// 用以抵消网络抖动带来的断断续续。
   void handleAudioData(Uint8List pcmData) {
     if (!_initialized || _pcmController == null || _pcmController!.isClosed) {
+      log('handleAudioData: 播放器未初始化，忽略 ${pcmData.length} bytes');
       return;
     }
+
+    log('handleAudioData: 收到 ${pcmData.length} bytes, started=$_started');
 
     if (!_started) {
       _jitterBuffer = _concatBuffers(_jitterBuffer, pcmData);
       if (_jitterBuffer!.length >= _jitterSize) {
+        log('handleAudioData: 抖动缓冲已满 ${_jitterBuffer!.length} bytes，开始播放');
         _pcmController!.add(_jitterBuffer!);
         _jitterBuffer = null;
         _started = true;
