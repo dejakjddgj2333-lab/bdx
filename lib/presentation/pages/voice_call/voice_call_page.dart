@@ -104,7 +104,6 @@ class _VoiceCallPageState extends State<VoiceCallPage>
         listener: (context, state) {
           if (state.status == CallStatus.idle) {
             _durationTimer?.cancel();
-            context.go('/');
           }
         },
         builder: (context, state) {
@@ -142,6 +141,8 @@ class _VoiceCallPageState extends State<VoiceCallPage>
                 ),
                 const SizedBox(height: 24),
                 _buildTextDisplay(state),
+                const SizedBox(height: 12),
+                _buildPlayerLogPanel(state),
                 const Spacer(),
                 _buildWaveAnimation(),
                 const SizedBox(height: 40),
@@ -219,6 +220,65 @@ class _VoiceCallPageState extends State<VoiceCallPage>
               : AppColors.textSecondary,
           fontSize: 15,
         ),
+      ),
+    );
+  }
+
+  Widget _buildPlayerLogPanel(VoiceCallState state) {
+    if (state.playerLogs.isEmpty) return const SizedBox.shrink();
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.all(10),
+      constraints: const BoxConstraints(maxHeight: 180),
+      decoration: BoxDecoration(
+        color: Colors.black.withOpacity(0.35),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: AppColors.borderSubtle),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 8,
+                height: 8,
+                decoration: const BoxDecoration(
+                  color: Colors.orange,
+                  shape: BoxShape.circle,
+                ),
+              ),
+              const SizedBox(width: 6),
+              const Text(
+                '播放器状态日志',
+                style: TextStyle(color: AppColors.textSecondary, fontSize: 11),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Expanded(
+            child: SingleChildScrollView(
+              reverse: true,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: state.playerLogs.map((log) {
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 3),
+                    child: Text(
+                      log,
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 10,
+                        height: 1.3,
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -316,8 +376,9 @@ class _VoiceCallPageState extends State<VoiceCallPage>
 
   void _hangup(BuildContext context) {
     _durationTimer?.cancel();
+    setState(() => _microphoneDenied = false);
     context.read<VoiceCallBloc>().add(const VoiceCallHangup());
-    context.go('/');
+    // 挂断后停留在当前页，不返回上一页
   }
 
   Widget _buildPermissionDenied() {

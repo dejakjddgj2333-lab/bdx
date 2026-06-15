@@ -12,6 +12,7 @@ import '../core/utils/audio_utils.dart';
 class AudioPlayerService {
   AudioPlayer? _player;
   StreamController<Uint8List>? _pcmController;
+  final StreamController<String> _logController = StreamController<String>.broadcast();
 
   bool _initialized = false;
   bool _started = false;
@@ -23,6 +24,9 @@ class AudioPlayerService {
 
   /// 24kHz 16-bit mono，100ms 抖动缓冲 = 4800 bytes
   static const int _jitterSize = 4800;
+
+  /// 播放器内部日志流，供 UI 实时显示调试用。
+  Stream<String> get logs => _logController.stream;
 
   Future<void> init() async {
     if (_initialized) return;
@@ -44,9 +48,9 @@ class AudioPlayerService {
         androidAudioFocusGainType: AndroidAudioFocusGainType.gain,
       ));
       await session.setActive(true);
-      log('音频会话配置完成, 采样率=$_sampleRate, 声道=$_channels');
+      _emitLog('音频会话配置完成, 采样率=$_sampleRate, 声道=$_channels');
     } catch (e) {
-      log('音频会话配置失败（继续初始化播放器）: $e');
+      _emitLog('音频会话配置失败（继续初始化播放器）: $e');
     }
 
     try {
@@ -59,7 +63,7 @@ class AudioPlayerService {
 
       // 监听播放器状态，便于排查 iOS 没声音问题
       _player!.playerStateStream.listen((playerState) {
-        log('播放器状态: playing=${playerState.playing}, '
+        _emitLog('播放器状态: playing=${playerState.playing}, '
             'processingState=${playerState.processingState}');
       });
 
@@ -68,9 +72,9 @@ class AudioPlayerService {
 
       await _player!.setVolume(1.0);
       await _player!.play();
-      log('音频播放器初始化完成');
+      _emitLog('音频播放器初始化完成');
     } catch (e) {
-      log('音频播放器初始化失败: $e');
+      _emitLog('音频播放器初始化失败: $e');
       await dispose();
       rethrow;
     }
@@ -97,9 +101,9 @@ class AudioPlayerService {
         androidAudioFocusGainType: AndroidAudioFocusGainType.gain,
       ));
       await session.setActive(true);
-      log('音频输出切换到: ${useSpeaker ? "扬声器" : "听筒"}');
+      _emitLog('音频输出切换到: ${useSpeaker ? "扬声器" : "听筒"}');
     } catch (e) {
-      log('切换扬声器失败: $e');
+      _emitLog('切换扬声器失败: $e');
     }
   }
 
@@ -109,17 +113,17 @@ class AudioPlayerService {
   /// 用以抵消网络抖动带来的断断续续。
   void handleAudioData(Uint8List pcmData) {
     if (!_initialized || _pcmController == null || _pcmController!.isClosed) {
-      log('handleAudioData: 播放器未初始化，忽略 ${pcmData.length} bytes');
+      _emitLog('handleAudioData: 播放器未初始化，忽略 ${pcmData.length} bytes');
       return;
     }
 
-    log('handleAudioData: 收到 ${pcmData.length} bytes, started=$_started, '
+    _emitLog('handleAudioData: 收到 ${pcmData.length} bytes, started=$_started, '
         'playing=${_player?.playing}, processingState=${_player?.processingState}');
 
     if (!_started) {
       _jitterBuffer = _concatBuffers(_jitterBuffer, pcmData);
       if (_jitterBuffer!.length >= _jitterSize) {
-        log('handleAudioData: 抖动缓冲已满 ${_jitterBuffer!.length} bytes，开始播放');
+        _emitLog('handleAudioData: 抖动缓冲已满 ${_jitterBuffer!.length} bytes，开始播放');
         _pcmController!.add(_jitterBuffer!);
         _jitterBuffer = null;
         _started = true;
@@ -157,7 +161,7 @@ class AudioPlayerService {
     if (player == null) return;
     // 只要没在播放就尝试恢复，兼容 iOS 在各种 processingState 下的暂停状态。
     if (!player.playing) {
-      log('_ensurePlaying: 尝试恢复播放 (processingState=${player.processingState})');
+      _emitLog('_ensurePlaying: 尝试恢复播放 (processingState=${player.processingState})');
       player.play();
     }
   }
@@ -169,7 +173,7 @@ class AudioPlayerService {
   }
 
   void forceReset() {
-    log('AudioPlayer 长时间无数据，强制重置');
+    _emitLog('AudioPlayer 长时间无数据，强制重置');
     _player?.stop();
     _playStartTime = null;
   }
@@ -184,7 +188,7 @@ class AudioPlayerService {
       final session = await AudioSession.instance;
       await session.setActive(false);
     } catch (e) {
-      log('AudioSession 释放失败: $e');
+      _emitLog('AudioSession 释放失败: $e');
     }
 
     if (_pcmController != null && !_pcmController!.isClosed) {
@@ -202,6 +206,13 @@ class AudioPlayerService {
     result.setAll(0, a);
     result.setAll(a.length, b);
     return result;
+  }
+
+  void _emitLog(String message) {
+    log(message);
+    if (!_logController.isClosed) {
+      _logController.add(message);
+    }
   }
 }
 
