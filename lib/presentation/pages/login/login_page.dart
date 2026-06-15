@@ -76,7 +76,7 @@ class _LoginPageState extends State<LoginPage>
 
     return Scaffold(
       resizeToAvoidBottomInset: true,
-      backgroundColor: Colors.transparent,
+      backgroundColor: AppColors.bg,
       body: BlocListener<AuthBloc, AuthState>(
         listener: (context, state) {
           if (state is AuthAuthenticated) {

@@ -39,7 +39,7 @@ class _ChatListPageState extends State<ChatListPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.transparent,
+      backgroundColor: AppColors.bg,
       drawer: const SideMenu(),
       body: BlocBuilder<AuthBloc, AuthState>(
         builder: (context, authState) {

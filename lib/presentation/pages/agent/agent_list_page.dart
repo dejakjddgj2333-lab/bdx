@@ -42,7 +42,7 @@ class _AgentListPageState extends State<AgentListPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.transparent,
+      backgroundColor: AppColors.bg,
       body: Column(
         children: [
           AppHeader(

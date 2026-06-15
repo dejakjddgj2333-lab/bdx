@@ -75,7 +75,7 @@ class _ChatDetailPageState extends State<ChatDetailPage>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.transparent,
+      backgroundColor: AppColors.bg,
       resizeToAvoidBottomInset: true,
       body: BlocConsumer<ChatDetailBloc, ChatDetailState>(
         listener: (context, state) {

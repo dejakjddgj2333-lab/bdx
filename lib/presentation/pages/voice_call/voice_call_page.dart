@@ -95,7 +95,7 @@ class _VoiceCallPageState extends State<VoiceCallPage>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.transparent,
+      backgroundColor: AppColors.bg,
       body: BlocConsumer<VoiceCallBloc, VoiceCallState>(
         listener: (context, state) {
           if (state.status == CallStatus.idle) {
