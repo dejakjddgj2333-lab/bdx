@@ -51,7 +51,9 @@ class AudioPlayerService {
 
     try {
       _player = AudioPlayer();
-      _pcmController = StreamController<Uint8List>();
+      // 使用广播流：iOS just_audio 内部代理可能会多次订阅（range 请求），
+      // 单订阅流会导致二次监听抛出异常。
+      _pcmController = StreamController<Uint8List>.broadcast();
 
       await _player!.setAudioSource(_PcmStreamSource(_pcmController!.stream));
 
@@ -146,9 +148,8 @@ class AudioPlayerService {
   void _ensurePlaying() {
     final player = _player;
     if (player == null) return;
-    if (player.playing) return;
-    if (player.processingState == ProcessingState.completed ||
-        player.processingState == ProcessingState.idle) {
+    // 只要没在播放就尝试恢复，兼容 iOS 在各种 processingState 下的暂停状态。
+    if (!player.playing) {
       player.play();
     }
   }
@@ -206,10 +207,16 @@ class _PcmStreamSource extends StreamAudioSource {
 
   @override
   Future<StreamAudioResponse> request([int? start, int? end]) async {
+    // iOS 的 AVPlayer 通过 just_audio 内部 HTTP 代理请求音频，会发起 range 请求。
+    // 直播流长度未知，若 sourceLength 与 contentLength 同时为 null，
+    // just_audio 在计算 contentLength 时会抛出 Null check operator 异常。
+    // 这里给一个足够大的 fake 长度，让播放器认为是无尽流并持续播放。
+    const fakeLength = 0x7FFFFFFFFFFFFFFF;
+    final offset = start ?? 0;
     return StreamAudioResponse(
-      sourceLength: null, // 实时流，长度未知
-      contentLength: null,
-      offset: 0,
+      sourceLength: fakeLength,
+      contentLength: end != null ? end - offset : null,
+      offset: offset,
       stream: _stream,
       contentType: 'audio/wav',
     );
