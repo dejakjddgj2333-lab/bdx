@@ -76,6 +76,7 @@ class _ChatDetailPageState extends State<ChatDetailPage>
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.transparent,
+      resizeToAvoidBottomInset: true,
       body: BlocConsumer<ChatDetailBloc, ChatDetailState>(
         listener: (context, state) {
           WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
@@ -353,7 +354,7 @@ class _ChatDetailPageState extends State<ChatDetailPage>
         left: 16,
         right: 16,
         top: 12,
-        bottom: MediaQuery.of(context).padding.bottom + 12,
+        bottom: MediaQuery.of(context).viewInsets.bottom + MediaQuery.of(context).padding.bottom + 12,
       ),
       decoration: const BoxDecoration(
         color: AppColors.bgElevated,

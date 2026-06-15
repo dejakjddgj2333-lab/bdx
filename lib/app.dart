@@ -52,50 +52,68 @@ final GoRouter _router = GoRouter(
   routes: [
     GoRoute(
       path: '/',
-      builder: (context, state) => BlocProvider(
-        create: (_) => getIt<ChatListBloc>()..add(const ChatListLoaded()),
-        child: const ChatListPage(),
+      pageBuilder: (context, state) => NoTransitionPage(
+        key: state.pageKey,
+        child: BlocProvider(
+          create: (_) => getIt<ChatListBloc>()..add(const ChatListLoaded()),
+          child: const ChatListPage(),
+        ),
       ),
     ),
     GoRoute(
       path: '/login',
-      builder: (context, state) {
+      pageBuilder: (context, state) {
         final redirect = state.uri.queryParameters['redirect'];
-        return LoginPage(redirect: redirect);
+        return NoTransitionPage(
+          key: state.pageKey,
+          child: LoginPage(redirect: redirect),
+        );
       },
     ),
     GoRoute(
       path: '/chat/detail',
-      builder: (context, state) {
+      pageBuilder: (context, state) {
         final id = state.uri.queryParameters['id'];
         final agentId = state.uri.queryParameters['agentId'];
         final content = state.uri.queryParameters['content'];
-        return BlocProvider(
-          create: (_) => getIt<ChatDetailBloc>(),
-          child: ChatDetailPage(
-            conversationId: id,
-            agentId: agentId,
-            initialContent: content,
+        return NoTransitionPage(
+          key: state.pageKey,
+          child: BlocProvider(
+            create: (_) => getIt<ChatDetailBloc>(),
+            child: ChatDetailPage(
+              conversationId: id,
+              agentId: agentId,
+              initialContent: content,
+            ),
           ),
         );
       },
     ),
     GoRoute(
       path: '/agents',
-      builder: (context, state) => BlocProvider(
-        create: (_) => getIt<AgentBloc>()..add(const AgentLoaded()),
-        child: const AgentListPage(),
+      pageBuilder: (context, state) => NoTransitionPage(
+        key: state.pageKey,
+        child: BlocProvider(
+          create: (_) => getIt<AgentBloc>()..add(const AgentLoaded()),
+          child: const AgentListPage(),
+        ),
       ),
     ),
     GoRoute(
       path: '/profile',
-      builder: (context, state) => const ProfilePage(),
+      pageBuilder: (context, state) => NoTransitionPage(
+        key: state.pageKey,
+        child: const ProfilePage(),
+      ),
     ),
     GoRoute(
       path: '/voice-call',
-      builder: (context, state) => BlocProvider(
-        create: (_) => getIt<VoiceCallBloc>(),
-        child: const VoiceCallPage(),
+      pageBuilder: (context, state) => NoTransitionPage(
+        key: state.pageKey,
+        child: BlocProvider(
+          create: (_) => getIt<VoiceCallBloc>(),
+          child: const VoiceCallPage(),
+        ),
       ),
     ),
   ],
