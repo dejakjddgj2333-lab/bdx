@@ -27,7 +27,15 @@ class App extends StatelessWidget {
       child: MaterialApp.router(
         title: '北斗星AI',
         debugShowCheckedModeBanner: false,
-        theme: AppTheme.darkTheme,
+        theme: AppTheme.darkTheme.copyWith(
+          platform: TargetPlatform.iOS,
+          pageTransitionsTheme: const PageTransitionsTheme(
+            builders: {
+              TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
+              TargetPlatform.android: CupertinoPageTransitionsBuilder(),
+            },
+          ),
+        ),
         routerConfig: _router,
         builder: (context, child) => TechBackground(child: child ?? const SizedBox.shrink()),
       ),
@@ -53,8 +61,11 @@ final GoRouter _router = GoRouter(
   routes: [
     GoRoute(
       path: '/',
-      pageBuilder: (context, state) => CupertinoPage(
+      pageBuilder: (context, state) => CustomTransitionPage(
         key: state.pageKey,
+        transitionsBuilder: (context, animation, secondaryAnimation, child) => child,
+        transitionDuration: const Duration(milliseconds: 1),
+        reverseTransitionDuration: const Duration(milliseconds: 1),
         child: BlocProvider(
           create: (_) => getIt<ChatListBloc>()..add(const ChatListLoaded()),
           child: const ChatListPage(),
@@ -65,8 +76,11 @@ final GoRouter _router = GoRouter(
       path: '/login',
       pageBuilder: (context, state) {
         final redirect = state.uri.queryParameters['redirect'];
-        return CupertinoPage(
+        return CustomTransitionPage(
           key: state.pageKey,
+          transitionsBuilder: (context, animation, secondaryAnimation, child) => child,
+          transitionDuration: const Duration(milliseconds: 1),
+          reverseTransitionDuration: const Duration(milliseconds: 1),
           child: LoginPage(redirect: redirect),
         );
       },
@@ -77,8 +91,11 @@ final GoRouter _router = GoRouter(
         final id = state.uri.queryParameters['id'];
         final agentId = state.uri.queryParameters['agentId'];
         final content = state.uri.queryParameters['content'];
-        return CupertinoPage(
+        return CustomTransitionPage(
           key: state.pageKey,
+          transitionsBuilder: (context, animation, secondaryAnimation, child) => child,
+          transitionDuration: const Duration(milliseconds: 1),
+          reverseTransitionDuration: const Duration(milliseconds: 1),
           child: BlocProvider(
             create: (_) => getIt<ChatDetailBloc>(),
             child: ChatDetailPage(
@@ -92,8 +109,11 @@ final GoRouter _router = GoRouter(
     ),
     GoRoute(
       path: '/agents',
-      pageBuilder: (context, state) => CupertinoPage(
+      pageBuilder: (context, state) => CustomTransitionPage(
         key: state.pageKey,
+        transitionsBuilder: (context, animation, secondaryAnimation, child) => child,
+        transitionDuration: const Duration(milliseconds: 1),
+        reverseTransitionDuration: const Duration(milliseconds: 1),
         child: BlocProvider(
           create: (_) => getIt<AgentBloc>()..add(const AgentLoaded()),
           child: const AgentListPage(),
@@ -102,15 +122,21 @@ final GoRouter _router = GoRouter(
     ),
     GoRoute(
       path: '/profile',
-      pageBuilder: (context, state) => CupertinoPage(
+      pageBuilder: (context, state) => CustomTransitionPage(
         key: state.pageKey,
+        transitionsBuilder: (context, animation, secondaryAnimation, child) => child,
+        transitionDuration: const Duration(milliseconds: 1),
+        reverseTransitionDuration: const Duration(milliseconds: 1),
         child: const ProfilePage(),
       ),
     ),
     GoRoute(
       path: '/voice-call',
-      pageBuilder: (context, state) => CupertinoPage(
+      pageBuilder: (context, state) => CustomTransitionPage(
         key: state.pageKey,
+        transitionsBuilder: (context, animation, secondaryAnimation, child) => child,
+        transitionDuration: const Duration(milliseconds: 1),
+        reverseTransitionDuration: const Duration(milliseconds: 1),
         child: BlocProvider(
           create: (_) => getIt<VoiceCallBloc>(),
           child: const VoiceCallPage(),
