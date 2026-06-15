@@ -194,9 +194,9 @@ class VoiceCallBloc extends Bloc<VoiceCallEvent, VoiceCallState> {
       case 'response.audio.delta':
         _lastAudioDeltaTime = DateTime.now();
         if (state.status != CallStatus.speaking) {
-          log('AI 开始播放语音, 提高 VAD threshold 到 0.85，降低回音误触发');
+          log('AI 开始播放语音, VAD threshold 0.6，兼顾打断与回音抑制');
           emit(state.copyWith(status: CallStatus.speaking));
-          _webSocketService.updateVadThreshold(0.85);
+          _webSocketService.updateVadThreshold(0.6);
           _startSpeakingWatchdog();
         }
         break;
