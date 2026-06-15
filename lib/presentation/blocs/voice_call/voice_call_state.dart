@@ -26,7 +26,6 @@ class VoiceCallState extends Equatable {
   final bool isSpeaker;
   final int durationSeconds;
   final String? error;
-  final List<String> debugLogs;
 
   const VoiceCallState({
     this.status = CallStatus.idle,
@@ -36,7 +35,6 @@ class VoiceCallState extends Equatable {
     this.isSpeaker = true,
     this.durationSeconds = 0,
     this.error,
-    this.debugLogs = const [],
   });
 
   String get statusText {
@@ -72,7 +70,6 @@ class VoiceCallState extends Equatable {
     bool? isSpeaker,
     int? durationSeconds,
     String? error,
-    List<String>? debugLogs,
   }) {
     return VoiceCallState(
       status: status ?? this.status,
@@ -82,7 +79,6 @@ class VoiceCallState extends Equatable {
       isSpeaker: isSpeaker ?? this.isSpeaker,
       durationSeconds: durationSeconds ?? this.durationSeconds,
       error: error,
-      debugLogs: debugLogs ?? this.debugLogs,
     );
   }
 
@@ -95,6 +91,5 @@ class VoiceCallState extends Equatable {
         isSpeaker,
         durationSeconds,
         error,
-        debugLogs,
       ];
 }
