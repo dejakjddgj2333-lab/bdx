@@ -334,38 +334,74 @@ class _VoiceCallPageState extends State<VoiceCallPage>
               textAlign: TextAlign.center,
               style: TextStyle(color: Colors.white, fontSize: 16, height: 1.5),
             ),
-            const SizedBox(height: 24),
-            ElevatedButton(
-              onPressed: () async {
-                final status = await Permission.microphone.status;
-                if (status.isPermanentlyDenied ||
-                    status.isRestricted ||
-                    status.isDenied) {
-                  await openAppSettings();
-                } else {
-                  _checkPermissionAndStart();
-                }
+            const SizedBox(height: 8),
+            FutureBuilder<PermissionStatus>(
+              future: Permission.microphone.status,
+              builder: (context, snapshot) {
+                final status = snapshot.data;
+                final isPermanent = status?.isPermanentlyDenied ?? false;
+                final isRestricted = status?.isRestricted ?? false;
+                final canRequest = status?.isDenied ?? false;
+
+                return Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (status != null)
+                      Text(
+                        isPermanent || isRestricted
+                            ? '权限已被永久拒绝，请前往系统设置手动开启'
+                            : '请点击下方按钮授权麦克风权限',
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          color: AppColors.textSecondary,
+                          fontSize: 13,
+                          height: 1.4,
+                        ),
+                      ),
+                    const SizedBox(height: 24),
+                    if (canRequest)
+                      ElevatedButton(
+                        onPressed: _checkPermissionAndStart,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primary,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 32,
+                            vertical: 12,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(24),
+                          ),
+                        ),
+                        child: const Text('重新请求权限'),
+                      )
+                    else
+                      ElevatedButton(
+                        onPressed: openAppSettings,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primary,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 32,
+                            vertical: 12,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(24),
+                          ),
+                        ),
+                        child: const Text('去系统设置开启'),
+                      ),
+                    const SizedBox(height: 12),
+                    TextButton(
+                      onPressed: () => _checkPermissionAndStart(),
+                      child: const Text(
+                        '已开启，重新检测',
+                        style: TextStyle(color: AppColors.textSecondary),
+                      ),
+                    ),
+                  ],
+                );
               },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 32,
-                  vertical: 12,
-                ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(24),
-                ),
-              ),
-              child: const Text('重新请求权限'),
-            ),
-            const SizedBox(height: 12),
-            TextButton(
-              onPressed: openAppSettings,
-              child: const Text(
-                '去系统设置开启',
-                style: TextStyle(color: AppColors.textSecondary),
-              ),
             ),
           ],
         ),
