@@ -116,7 +116,7 @@ class _VoiceCallPageState extends State<VoiceCallPage>
                 Align(
                   alignment: Alignment.centerLeft,
                   child: IconButton(
-                    onPressed: () => _hangup(context),
+                    onPressed: () => _goBack(context),
                     icon: const Icon(Icons.arrow_back, color: Colors.white),
                   ),
                 ),
@@ -297,6 +297,12 @@ class _VoiceCallPageState extends State<VoiceCallPage>
     // 挂断后停留在当前页，不返回上一页
   }
 
+  void _goBack(BuildContext context) {
+    _durationTimer?.cancel();
+    context.read<VoiceCallBloc>().add(const VoiceCallHangup());
+    context.go('/');
+  }
+
   Widget _buildPermissionDenied() {
     return SizedBox.expand(
       child: Stack(
@@ -391,7 +397,7 @@ class _VoiceCallPageState extends State<VoiceCallPage>
             child: Align(
               alignment: Alignment.topLeft,
               child: IconButton(
-                onPressed: () => _hangup(context),
+                onPressed: () => _goBack(context),
                 icon: const Icon(Icons.arrow_back, color: Colors.white),
               ),
             ),
