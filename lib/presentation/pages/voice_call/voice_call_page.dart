@@ -46,7 +46,9 @@ class _VoiceCallPageState extends State<VoiceCallPage>
     }
 
     // 先查当前状态，避免已永久拒绝时反复弹窗
+    debugPrint('VoiceCall: 检查麦克风权限状态...');
     final current = await Permission.microphone.status;
+    debugPrint('VoiceCall: 当前麦克风权限状态 = $current');
     if (!mounted) return;
     if (current.isGranted) {
       setState(() => _microphoneDenied = false);
@@ -59,7 +61,9 @@ class _VoiceCallPageState extends State<VoiceCallPage>
       return;
     }
 
+    debugPrint('VoiceCall: 请求麦克风权限...');
     final status = await Permission.microphone.request();
+    debugPrint('VoiceCall: 请求后麦克风权限状态 = $status');
     if (!mounted) return;
     if (status.isGranted) {
       setState(() => _microphoneDenied = false);
