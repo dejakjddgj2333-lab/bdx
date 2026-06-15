@@ -229,6 +229,16 @@ class _VoiceCallPageState extends State<VoiceCallPage>
   }
 
   Widget _buildControls(VoiceCallState state) {
+    // 通话已结束，显示重新接通按钮
+    if (state.status == CallStatus.idle) {
+      return _buildControlButton(
+        icon: Icons.phone_in_talk,
+        label: '重新接通',
+        color: AppColors.primary,
+        onTap: () => _checkPermissionAndStart(),
+      );
+    }
+
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       children: [
