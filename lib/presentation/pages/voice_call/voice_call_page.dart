@@ -98,7 +98,6 @@ class _VoiceCallPageState extends State<VoiceCallPage>
                   style: const TextStyle(color: AppColors.textSecondary, fontSize: 16),
                 ),
                 const SizedBox(height: 24),
-                _buildTextDisplay(state),
                 const Spacer(),
                 _buildWaveAnimation(),
                 const SizedBox(height: 40),
@@ -149,26 +148,6 @@ class _VoiceCallPageState extends State<VoiceCallPage>
           ),
         );
       },
-    );
-  }
-
-  Widget _buildTextDisplay(VoiceCallState state) {
-    if (state.currentText.isEmpty) return const SizedBox.shrink();
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 32),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.glassWhite,
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Text(
-        state.currentText,
-        textAlign: TextAlign.center,
-        style: TextStyle(
-          color: state.currentSpeaker == 'user' ? Colors.white : AppColors.textSecondary,
-          fontSize: 15,
-        ),
-      ),
     );
   }
 
