@@ -57,6 +57,12 @@ class AudioPlayerService {
 
       await _player!.setAudioSource(_PcmStreamSource(_pcmController!.stream));
 
+      // 监听播放器状态，便于排查 iOS 没声音问题
+      _player!.playerStateStream.listen((playerState) {
+        log('播放器状态: playing=${playerState.playing}, '
+            'processingState=${playerState.processingState}');
+      });
+
       // 先写入流式 WAV 头，让播放器知道采样率/声道等格式信息
       _pcmController!.add(AudioUtils.streamingWavHeader(_sampleRate, _channels));
 
@@ -107,7 +113,8 @@ class AudioPlayerService {
       return;
     }
 
-    log('handleAudioData: 收到 ${pcmData.length} bytes, started=$_started');
+    log('handleAudioData: 收到 ${pcmData.length} bytes, started=$_started, '
+        'playing=${_player?.playing}, processingState=${_player?.processingState}');
 
     if (!_started) {
       _jitterBuffer = _concatBuffers(_jitterBuffer, pcmData);
@@ -150,6 +157,7 @@ class AudioPlayerService {
     if (player == null) return;
     // 只要没在播放就尝试恢复，兼容 iOS 在各种 processingState 下的暂停状态。
     if (!player.playing) {
+      log('_ensurePlaying: 尝试恢复播放 (processingState=${player.processingState})');
       player.play();
     }
   }

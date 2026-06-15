@@ -138,6 +138,10 @@ class VoiceCallBloc extends Bloc<VoiceCallEvent, VoiceCallState> {
           await _audioRecorderService.startRecording(
             onData: (data) => _webSocketService.sendAudio(data),
           );
+          // record 插件启动录音时会重新配置 AVAudioSession，可能覆盖我们的
+          // defaultToSpeaker，导致声音从听筒输出。录音启动后重新应用一次输出路由。
+          log('录音已启动，重新应用音频输出路由: speaker=${state.isSpeaker}');
+          await _audioPlayerService.setSpeaker(state.isSpeaker);
         }
         emit(state.copyWith(status: CallStatus.connected));
         await Future.delayed(const Duration(milliseconds: 300));
