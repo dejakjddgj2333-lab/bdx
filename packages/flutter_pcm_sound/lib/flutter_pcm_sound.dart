@@ -19,7 +19,7 @@ enum IosAudioCategory {
 }
 
 class FlutterPcmSound {
-  static const MethodChannel _channel = const MethodChannel('flutter_pcm_sound/methods');
+  static const MethodChannel _channel = MethodChannel('flutter_pcm_sound/methods');
 
   static Function(int)? onFeedSamplesCallback;
 
@@ -54,6 +54,11 @@ class FlutterPcmSound {
   static Future<void> feed(PcmArrayInt16 buffer) async {
     if (_needsStart && buffer.count != 0) _needsStart = false;
     return await _invokeMethod('feed', {'buffer': buffer.bytes.buffer.asUint8List()});
+  }
+
+  /// set the preferred sample rate for the AVAudioSession (iOS only).
+  static Future<void> setPreferredSampleRate(int sampleRate) async {
+    return await _invokeMethod('setPreferredSampleRate', {'sample_rate': sampleRate});
   }
 
   /// set the threshold at which we call the

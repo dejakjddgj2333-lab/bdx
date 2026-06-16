@@ -1,5 +1,7 @@
 import 'dart:async';
 import 'dart:developer';
+import 'package:audio_session/audio_session.dart';
+import 'package:flutter_pcm_sound/flutter_pcm_sound.dart';
 import 'package:record/record.dart';
 import 'audio_recorder_service.dart';
 
@@ -51,6 +53,34 @@ class AudioRecorderServiceImpl implements AudioRecorderService {
     }, onDone: () {
       _isRecording = false;
     });
+
+    // record 插件启动时会重新配置 AVAudioSession（category / sampleRate），
+    // 可能覆盖我们的 voiceChat / defaultToSpeaker 配置，导致播放端卡顿或路由异常。
+    // 录音建立后立刻重新应用一次我们期望的会话配置。
+    await _reassertAudioSession();
+  }
+
+  Future<void> _reassertAudioSession() async {
+    try {
+      final session = await AudioSession.instance;
+      await session.configure(AudioSessionConfiguration(
+        avAudioSessionCategory: AVAudioSessionCategory.playAndRecord,
+        avAudioSessionCategoryOptions:
+            AVAudioSessionCategoryOptions.defaultToSpeaker |
+                AVAudioSessionCategoryOptions.allowBluetooth,
+        avAudioSessionMode: AVAudioSessionMode.voiceChat,
+        androidAudioAttributes: const AndroidAudioAttributes(
+          contentType: AndroidAudioContentType.speech,
+          usage: AndroidAudioUsage.voiceCommunication,
+        ),
+        androidAudioFocusGainType: AndroidAudioFocusGainType.gain,
+      ));
+      await session.setActive(true);
+      await FlutterPcmSound.setPreferredSampleRate(24000);
+      log('录音启动后重新应用音频会话: voiceChat + defaultToSpeaker, sampleRate=24000');
+    } catch (e) {
+      log('录音启动后音频会话配置失败: $e');
+    }
   }
 
   @override

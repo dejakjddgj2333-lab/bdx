@@ -56,7 +56,15 @@ class VoiceCallBloc extends Bloc<VoiceCallEvent, VoiceCallState> {
         log('加载语音通话配置失败，使用默认音色: $configErr');
       }
 
-      // 1. 先连 WebSocket，把 App 选择的音色带在 URL 参数里
+      // 1. 先初始化音频播放器，确保 WebSocket 一来音频就能直接进缓冲
+      try {
+        await _audioPlayerService.init();
+        log('音频播放器初始化完成');
+      } catch (audioErr) {
+        log('音频播放器初始化失败（不影响连接）: $audioErr');
+      }
+
+      // 2. 再连 WebSocket，把 App 选择的音色带在 URL 参数里
       final settingsState = _voiceCallSettingsCubit.state;
       final voice = settingsState.selectedVoice ?? settingsState.config?.defaultVoice;
       await _webSocketService.connect(voice: voice);
@@ -68,14 +76,6 @@ class VoiceCallBloc extends Bloc<VoiceCallEvent, VoiceCallState> {
       _audioSubscription = _webSocketService.audioStream.listen(
         (data) => add(VoiceCallAudioReceived(Uint8List.fromList(data))),
       );
-
-      // 2. 再初始化音频播放器；如果这里失败也不应阻断整个通话
-      try {
-        await _audioPlayerService.init();
-        log('音频播放器初始化完成');
-      } catch (audioErr) {
-        log('音频播放器初始化失败（不影响连接）: $audioErr');
-      }
 
       _startPlayerWatchdog();
     } catch (e) {

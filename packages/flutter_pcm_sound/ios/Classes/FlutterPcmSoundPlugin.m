@@ -245,6 +245,22 @@ typedef NS_ENUM(NSUInteger, LogLevel) {
 
             result(@YES);
         }
+        else if ([@"setPreferredSampleRate" isEqualToString:call.method])
+        {
+            NSDictionary *args = (NSDictionary*)call.arguments;
+            NSNumber *sampleRate = args[@"sample_rate"];
+
+            NSError *error = nil;
+            [[AVAudioSession sharedInstance] setPreferredSampleRate:[sampleRate doubleValue] error:&error];
+            if (error) {
+                NSLog(@"Error setting preferred sample rate: %@", error);
+                result([FlutterError errorWithCode:@"AVAudioSessionError"
+                                        message:@"Error setting preferred sample rate"
+                                        details:[error localizedDescription]]);
+                return;
+            }
+            result(@YES);
+        }
         else if ([@"setFeedThreshold" isEqualToString:call.method])
         {
             NSDictionary *args = (NSDictionary*)call.arguments;
