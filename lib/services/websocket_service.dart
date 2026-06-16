@@ -121,8 +121,14 @@ class WebSocketService {
     send(config);
   }
 
+  int _audioSendCount = 0;
+
   void sendAudio(List<int> pcmData) {
     final base64 = AudioUtils.bytesToBase64(Uint8List.fromList(pcmData));
+    _audioSendCount++;
+    if (_audioSendCount <= 3 || _audioSendCount % 100 == 0) {
+      log('发送 input_audio_buffer.append #$_audioSendCount, ${pcmData.length} bytes');
+    }
     send({
       'type': 'input_audio_buffer.append',
       'audio': base64,

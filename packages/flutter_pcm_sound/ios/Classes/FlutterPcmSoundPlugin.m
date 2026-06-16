@@ -148,6 +148,14 @@ typedef NS_ENUM(NSUInteger, LogLevel) {
                 return;
             }
 
+            // Match the hardware sample rate to our requested rate so input/output formats align.
+            [[AVAudioSession sharedInstance] setPreferredSampleRate:[sampleRate doubleValue] error:&error];
+            if (error) {
+                NSLog(@"Error setting preferred sample rate: %@", error);
+                // non-fatal
+                error = nil;
+            }
+
             [[AVAudioSession sharedInstance] setActive:YES error:&error];
             if (error) {
                 NSLog(@"Error activating AVAudioSession: %@", error);
@@ -225,6 +233,20 @@ typedef NS_ENUM(NSUInteger, LogLevel) {
             }
 
 #if TARGET_OS_IOS
+            // enable output (VoiceProcessingIO output bus is enabled by default, but make it explicit)
+            UInt32 enableOutput = 1;
+            status = AudioUnitSetProperty(_mAudioUnit,
+                                          kAudioOutputUnitProperty_EnableIO,
+                                          kAudioUnitScope_Output,
+                                          kOutputBus,
+                                          &enableOutput,
+                                          sizeof(enableOutput));
+            if (status != noErr) {
+                NSString* message = [NSString stringWithFormat:@"AudioUnitSetProperty EnableOutput failed. OSStatus: %@", @(status)];
+                result([FlutterError errorWithCode:@"AudioUnitError" message:message details:nil]);
+                return;
+            }
+
             // enable input
             UInt32 enableInput = 1;
             status = AudioUnitSetProperty(_mAudioUnit,
@@ -514,6 +536,15 @@ static OSStatus InputCallback(void *inRefCon,
 
     if (!instance.mIsRecording || instance.mRecordingEventSink == nil || ioData == NULL) {
         return noErr;
+    }
+
+    // Render input samples into ioData. For VoiceProcessingIO/RemoteIO the callback
+    // is invoked when input is available, but we still have to call AudioUnitRender
+    // to actually get the microphone data into the buffer list.
+    OSStatus status = AudioUnitRender(instance.mAudioUnit, ioActionFlags, inTimeStamp, inBusNumber, inNumberFrames, ioData);
+    if (status != noErr) {
+        NSLog(@"AudioUnitRender input failed. OSStatus: %@", @(status));
+        return status;
     }
 
     AudioBuffer buffer = ioData->mBuffers[0];
