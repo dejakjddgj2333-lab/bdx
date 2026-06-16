@@ -446,6 +446,13 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.4.8"
+  flutter_pcm_sound:
+    dependency: "direct main"
+    description:
+      path: "packages/flutter_pcm_sound"
+      relative: true
+    source: path
+    version: "3.3.3"
   flutter_plugin_android_lifecycle:
     dependency: transitive
     description:

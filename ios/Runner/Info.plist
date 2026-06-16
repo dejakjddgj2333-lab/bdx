@@ -8,6 +8,8 @@
 		<string>$(DEVELOPMENT_LANGUAGE)</string>
 		<key>CFBundleDisplayName</key>
 		<string>北斗星AI</string>
+		<key>ITSAppUsesNonExemptEncryption</key>
+		<false/>
 		<key>CFBundleExecutable</key>
 		<string>$(EXECUTABLE_NAME)</string>
 		<key>CFBundleIdentifier</key>
@@ -18,6 +20,8 @@
 		<string>beidouxing_app_flutter</string>
 		<key>NSPhotoLibraryUsageDescription</key>
 		<string>需要访问相册以发送图片给 AI</string>
+		<key>NSMicrophoneUsageDescription</key>
+		<string>This app needs microphone access for voice calls.</string>
 		<key>CFBundlePackageType</key>
 		<string>APPL</string>
 		<key>CFBundleShortVersionString</key>

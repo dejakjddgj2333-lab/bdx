@@ -72,6 +72,7 @@ class WebSocketService {
       final delta = data['delta']?.toString() ?? '';
       if (delta.isNotEmpty) {
         final bytes = AudioUtils.base64ToBytes(delta);
+        log('收到 response.audio.delta, ${bytes.length} bytes');
         _audioController.add(bytes.toList());
       }
     }

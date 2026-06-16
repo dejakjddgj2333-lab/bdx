@@ -25,21 +25,21 @@ class SideMenu extends StatelessWidget {
               const Divider(color: AppColors.borderSubtle, indent: 16, endIndent: 16),
               _buildMenuItem(Icons.chat_bubble_outline, '新建对话', () {
                 Navigator.pop(context);
-                context.go('/chat/detail');
+                context.push('/chat/detail');
               }),
               _buildMenuItem(Icons.smart_toy_outlined, '发现智能体', () {
                 Navigator.pop(context);
-                context.go('/agents');
+                context.push('/agents');
               }),
               _buildMenuItem(Icons.phone_in_talk_outlined, '语音通话', () {
                 Navigator.pop(context);
-                context.go('/voice-call');
+                context.push('/voice-call');
               }),
               const Spacer(),
               const Divider(color: AppColors.borderSubtle, indent: 16, endIndent: 16),
               _buildMenuItem(Icons.person_outline, '个人中心', () {
                 Navigator.pop(context);
-                context.go('/profile');
+                context.push('/profile');
               }),
               _buildMenuItem(Icons.logout, '退出登录', () {
                 Navigator.pop(context);

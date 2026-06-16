@@ -16,13 +16,15 @@ class VoiceCallPage extends StatefulWidget {
 }
 
 class _VoiceCallPageState extends State<VoiceCallPage>
-    with SingleTickerProviderStateMixin {
+    with SingleTickerProviderStateMixin, WidgetsBindingObserver {
   late AnimationController _waveController;
   Timer? _durationTimer;
+  bool _microphoneDenied = false;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _waveController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1500),
@@ -37,11 +39,38 @@ class _VoiceCallPageState extends State<VoiceCallPage>
       return;
     }
 
-    final status = kIsWeb ? PermissionStatus.granted : await Permission.microphone.request();
-    if (!mounted) return;
-    if (status.isGranted) {
+    if (kIsWeb) {
       context.read<VoiceCallBloc>().add(const VoiceCallStarted());
       _startDurationTimer();
+      return;
+    }
+
+    // 先查当前状态，避免已永久拒绝时反复弹窗
+    debugPrint('VoiceCall: 检查麦克风权限状态...');
+    final current = await Permission.microphone.status;
+    debugPrint('VoiceCall: 当前麦克风权限状态 = $current');
+    if (!mounted) return;
+    if (current.isGranted) {
+      setState(() => _microphoneDenied = false);
+      context.read<VoiceCallBloc>().add(const VoiceCallStarted());
+      _startDurationTimer();
+      return;
+    }
+    if (current.isPermanentlyDenied || current.isRestricted) {
+      setState(() => _microphoneDenied = true);
+      return;
+    }
+
+    debugPrint('VoiceCall: 请求麦克风权限...');
+    final status = await Permission.microphone.request();
+    debugPrint('VoiceCall: 请求后麦克风权限状态 = $status');
+    if (!mounted) return;
+    if (status.isGranted) {
+      setState(() => _microphoneDenied = false);
+      context.read<VoiceCallBloc>().add(const VoiceCallStarted());
+      _startDurationTimer();
+    } else {
+      setState(() => _microphoneDenied = true);
     }
   }
 
@@ -54,30 +83,40 @@ class _VoiceCallPageState extends State<VoiceCallPage>
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _waveController.dispose();
     _durationTimer?.cancel();
     super.dispose();
   }
 
   @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && _microphoneDenied) {
+      _checkPermissionAndStart();
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.transparent,
+      backgroundColor: AppColors.bg,
       body: BlocConsumer<VoiceCallBloc, VoiceCallState>(
         listener: (context, state) {
           if (state.status == CallStatus.idle) {
             _durationTimer?.cancel();
-            context.go('/');
           }
         },
         builder: (context, state) {
+          if (_microphoneDenied) {
+            return SafeArea(child: _buildPermissionDenied());
+          }
           return SafeArea(
             child: Column(
               children: [
                 Align(
                   alignment: Alignment.centerLeft,
                   child: IconButton(
-                    onPressed: () => _hangup(context),
+                    onPressed: () => _goBack(context),
                     icon: const Icon(Icons.arrow_back, color: Colors.white),
                   ),
                 ),
@@ -95,7 +134,10 @@ class _VoiceCallPageState extends State<VoiceCallPage>
                 const SizedBox(height: 12),
                 Text(
                   state.formattedDuration,
-                  style: const TextStyle(color: AppColors.textSecondary, fontSize: 16),
+                  style: const TextStyle(
+                    color: AppColors.textSecondary,
+                    fontSize: 16,
+                  ),
                 ),
                 const SizedBox(height: 24),
                 const Spacer(),
@@ -115,7 +157,9 @@ class _VoiceCallPageState extends State<VoiceCallPage>
     return AnimatedBuilder(
       animation: _waveController,
       builder: (context, child) {
-        final scale = state.status == CallStatus.speaking || state.status == CallStatus.listening
+        final scale =
+            state.status == CallStatus.speaking ||
+                state.status == CallStatus.listening
             ? 1.0 + _waveController.value * 0.05
             : 1.0;
         return Transform.scale(
@@ -141,7 +185,11 @@ class _VoiceCallPageState extends State<VoiceCallPage>
                 child: Image.asset(
                   'assets/images/logo.png',
                   fit: BoxFit.contain,
-                  errorBuilder: (_, __, ___) => const Icon(Icons.auto_awesome, color: Colors.white, size: 60),
+                  errorBuilder: (_, __, ___) => const Icon(
+                    Icons.auto_awesome,
+                    color: Colors.white,
+                    size: 60,
+                  ),
                 ),
               ),
             ),
@@ -181,6 +229,16 @@ class _VoiceCallPageState extends State<VoiceCallPage>
   }
 
   Widget _buildControls(VoiceCallState state) {
+    // 通话已结束，显示重新接通按钮
+    if (state.status == CallStatus.idle) {
+      return _buildControlButton(
+        icon: Icons.phone_in_talk,
+        label: '重新接通',
+        color: AppColors.primary,
+        onTap: () => _checkPermissionAndStart(),
+      );
+    }
+
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       children: [
@@ -188,7 +246,8 @@ class _VoiceCallPageState extends State<VoiceCallPage>
           icon: state.isMuted ? Icons.mic_off : Icons.mic,
           label: state.isMuted ? '静音' : '静音',
           isActive: state.isMuted,
-          onTap: () => context.read<VoiceCallBloc>().add(const VoiceCallToggleMute()),
+          onTap: () =>
+              context.read<VoiceCallBloc>().add(const VoiceCallToggleMute()),
         ),
         _buildControlButton(
           icon: Icons.call_end,
@@ -200,7 +259,8 @@ class _VoiceCallPageState extends State<VoiceCallPage>
           icon: state.isSpeaker ? Icons.volume_up : Icons.hearing,
           label: state.isSpeaker ? '免提' : '听筒',
           isActive: state.isSpeaker,
-          onTap: () => context.read<VoiceCallBloc>().add(const VoiceCallToggleSpeaker()),
+          onTap: () =>
+              context.read<VoiceCallBloc>().add(const VoiceCallToggleSpeaker()),
         ),
       ],
     );
@@ -222,7 +282,9 @@ class _VoiceCallPageState extends State<VoiceCallPage>
             width: 64,
             height: 64,
             decoration: BoxDecoration(
-              color: color ?? (isActive ? AppColors.primary : AppColors.glassWhite),
+              color:
+                  color ??
+                  (isActive ? AppColors.primary : AppColors.glassWhite),
               shape: BoxShape.circle,
               border: Border.all(color: AppColors.borderSubtle),
             ),
@@ -230,14 +292,132 @@ class _VoiceCallPageState extends State<VoiceCallPage>
           ),
         ),
         const SizedBox(height: 8),
-        Text(label, style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+        Text(
+          label,
+          style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
+        ),
       ],
     );
   }
 
   void _hangup(BuildContext context) {
     _durationTimer?.cancel();
+    setState(() => _microphoneDenied = false);
     context.read<VoiceCallBloc>().add(const VoiceCallHangup());
-    context.go('/');
+    // 挂断后停留在当前页，不返回上一页
+  }
+
+  void _goBack(BuildContext context) {
+    _durationTimer?.cancel();
+    context.read<VoiceCallBloc>().add(const VoiceCallHangup());
+    if (context.canPop()) {
+      context.pop();
+    } else {
+      context.go('/');
+    }
+  }
+
+  Widget _buildPermissionDenied() {
+    return SizedBox.expand(
+      child: Stack(
+        children: [
+          SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 32),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.mic_off, color: AppColors.textSecondary, size: 64),
+                  const SizedBox(height: 16),
+                  const Text(
+                    '需要麦克风权限才能进行语音通话',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: Colors.white, fontSize: 16, height: 1.5),
+                  ),
+                  const SizedBox(height: 8),
+                  FutureBuilder<PermissionStatus>(
+                    future: Permission.microphone.status,
+                    builder: (context, snapshot) {
+                      final status = snapshot.data;
+                      final isPermanent = status?.isPermanentlyDenied ?? false;
+                      final isRestricted = status?.isRestricted ?? false;
+                      final canRequest = status?.isDenied ?? false;
+
+                      return Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (status != null)
+                            Text(
+                              isPermanent || isRestricted
+                                  ? '权限已被永久拒绝，请前往系统设置手动开启'
+                                  : '请点击下方按钮授权麦克风权限',
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                color: AppColors.textSecondary,
+                                fontSize: 13,
+                                height: 1.4,
+                              ),
+                            ),
+                          const SizedBox(height: 24),
+                          if (canRequest)
+                            ElevatedButton(
+                              onPressed: _checkPermissionAndStart,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppColors.primary,
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 32,
+                                  vertical: 12,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(24),
+                                ),
+                              ),
+                              child: const Text('重新请求权限'),
+                            )
+                          else
+                            ElevatedButton(
+                              onPressed: openAppSettings,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppColors.primary,
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 32,
+                                  vertical: 12,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(24),
+                                ),
+                              ),
+                              child: const Text('去系统设置开启'),
+                            ),
+                          const SizedBox(height: 12),
+                          TextButton(
+                            onPressed: () => _checkPermissionAndStart(),
+                            child: const Text(
+                              '已开启，重新检测',
+                              style: TextStyle(color: AppColors.textSecondary),
+                            ),
+                          ),
+                        ],
+                      );
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ),
+          SafeArea(
+            child: Align(
+              alignment: Alignment.topLeft,
+              child: IconButton(
+                onPressed: () => _goBack(context),
+                icon: const Icon(Icons.arrow_back, color: Colors.white),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

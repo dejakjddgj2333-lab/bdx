@@ -40,15 +40,13 @@ class VoiceCallBloc extends Bloc<VoiceCallEvent, VoiceCallState> {
     VoiceCallStarted event,
     Emitter<VoiceCallState> emit,
   ) async {
-    emit(state.copyWith(
-      status: CallStatus.connecting,
-      debugInfo: _appendDebug(state.debugInfo, '开始连接'),
-    ));
+    emit(state.copyWith(status: CallStatus.connecting));
+    log('通话开始连接');
 
     try {
       // 1. 先连 WebSocket，确保后端能收到连接请求并打印日志
       await _webSocketService.connect();
-      emit(state.copyWith(debugInfo: _appendDebug(state.debugInfo, 'WebSocket 已连接')));
+      log('WebSocket 已连接');
 
       _messageSubscription = _webSocketService.messageStream.listen(
         (msg) => add(VoiceCallMessageReceived(msg)),
@@ -60,20 +58,15 @@ class VoiceCallBloc extends Bloc<VoiceCallEvent, VoiceCallState> {
       // 2. 再初始化音频播放器；如果这里失败也不应阻断整个通话
       try {
         await _audioPlayerService.init();
-        emit(state.copyWith(debugInfo: _appendDebug(state.debugInfo, '音频播放器初始化完成')));
+        log('音频播放器初始化完成');
       } catch (audioErr) {
-        emit(state.copyWith(
-          debugInfo: _appendDebug(state.debugInfo, '音频播放器初始化失败: $audioErr'),
-        ));
+        log('音频播放器初始化失败（不影响连接）: $audioErr');
       }
 
       _startPlayerWatchdog();
     } catch (e) {
-      emit(state.copyWith(
-        status: CallStatus.error,
-        error: e.toString(),
-        debugInfo: _appendDebug(state.debugInfo, '连接失败: $e'),
-      ));
+      log('通话连接失败: $e');
+      emit(state.copyWith(status: CallStatus.error, error: e.toString()));
     }
   }
 
@@ -89,7 +82,7 @@ class VoiceCallBloc extends Bloc<VoiceCallEvent, VoiceCallState> {
     _webSocketService.disconnect();
     await _messageSubscription?.cancel();
     await _audioSubscription?.cancel();
-    emit(const VoiceCallState(debugInfo: '[挂断] 重置状态'));
+    emit(const VoiceCallState());
   }
 
   Future<void> _onToggleMute(
@@ -127,8 +120,6 @@ class VoiceCallBloc extends Bloc<VoiceCallEvent, VoiceCallState> {
   ) async {
     final msg = event.message;
     final type = msg['type']?.toString() ?? '';
-    log('处理消息: $type');
-    emit(state.copyWith(debugInfo: _appendDebug(state.debugInfo, '收到 $type')));
 
     switch (type) {
       case 'session.created':
@@ -137,15 +128,15 @@ class VoiceCallBloc extends Bloc<VoiceCallEvent, VoiceCallState> {
         await Future.delayed(const Duration(milliseconds: 200));
         if (!state.isMuted) {
           log('启动录音');
-          emit(state.copyWith(debugInfo: _appendDebug(state.debugInfo, '启动录音')));
           await _audioRecorderService.startRecording(
             onData: (data) => _webSocketService.sendAudio(data),
           );
+          // record 插件启动录音时会重新配置 AVAudioSession，可能覆盖我们的
+          // defaultToSpeaker，导致声音从听筒输出。录音启动后重新应用一次输出路由。
+          log('录音已启动，重新应用音频输出路由: speaker=${state.isSpeaker}');
+          await _audioPlayerService.setSpeaker(state.isSpeaker);
         }
-        emit(state.copyWith(
-          status: CallStatus.connected,
-          debugInfo: _appendDebug(state.debugInfo, '已接通'),
-        ));
+        emit(state.copyWith(status: CallStatus.connected));
         await Future.delayed(const Duration(milliseconds: 300));
         if (state.status == CallStatus.connected) {
           emit(state.copyWith(status: CallStatus.listening));
@@ -156,20 +147,14 @@ class VoiceCallBloc extends Bloc<VoiceCallEvent, VoiceCallState> {
       case 'speech_started':
         log('检测到用户开始说话');
         // 服务端处理打断，客户端不停止本地播放，只切换状态
-        emit(state.copyWith(
-          status: CallStatus.listening,
-          debugInfo: _appendDebug(state.debugInfo, '用户开始说话'),
-        ));
+        emit(state.copyWith(status: CallStatus.listening));
         _webSocketService.updateVadThreshold(0.5);
         break;
 
       case 'input_audio_buffer.speech_stopped':
       case 'speech_stopped':
         log('检测到用户停止说话');
-        emit(state.copyWith(
-          status: CallStatus.thinking,
-          debugInfo: _appendDebug(state.debugInfo, '用户停止说话'),
-        ));
+        emit(state.copyWith(status: CallStatus.thinking));
         break;
 
       case 'conversation.item.input_audio_transcription.delta':
@@ -189,10 +174,7 @@ class VoiceCallBloc extends Bloc<VoiceCallEvent, VoiceCallState> {
 
       case 'response.created':
         log('AI 开始响应');
-        emit(state.copyWith(
-          status: CallStatus.thinking,
-          debugInfo: _appendDebug(state.debugInfo, 'AI 开始响应'),
-        ));
+        emit(state.copyWith(status: CallStatus.thinking));
         break;
 
       case 'response.audio_transcript.delta':
@@ -212,12 +194,9 @@ class VoiceCallBloc extends Bloc<VoiceCallEvent, VoiceCallState> {
       case 'response.audio.delta':
         _lastAudioDeltaTime = DateTime.now();
         if (state.status != CallStatus.speaking) {
-          log('AI 开始播放语音, 提高 VAD threshold 到 0.65');
-          emit(state.copyWith(
-            status: CallStatus.speaking,
-            debugInfo: _appendDebug(state.debugInfo, 'AI 开始播放语音'),
-          ));
-          _webSocketService.updateVadThreshold(0.65);
+          log('AI 开始播放语音, VAD threshold 0.6，兼顾打断与回音抑制');
+          emit(state.copyWith(status: CallStatus.speaking));
+          _webSocketService.updateVadThreshold(0.6);
           _startSpeakingWatchdog();
         }
         break;
@@ -230,29 +209,20 @@ class VoiceCallBloc extends Bloc<VoiceCallEvent, VoiceCallState> {
         log('AI 响应结束, 重置为 listening');
         _speakingWatchdog?.cancel();
         _lastAudioDeltaTime = null;
-        _audioPlayerService.flushAccumulatedAudio();
-        emit(state.copyWith(
-          status: CallStatus.listening,
-          debugInfo: _appendDebug(state.debugInfo, 'AI 响应结束'),
-        ));
+        await _audioPlayerService.flushAccumulatedAudio();
+        emit(state.copyWith(status: CallStatus.listening));
         _webSocketService.updateVadThreshold(0.5);
         break;
 
       case 'error':
       case 'server.error':
         log('通话错误: ${msg['error']}');
-        emit(state.copyWith(
-          error: msg['error']?.toString() ?? '通话出错',
-          debugInfo: _appendDebug(state.debugInfo, '错误: ${msg['error']}'),
-        ));
+        emit(state.copyWith(error: msg['error']?.toString() ?? '通话出错'));
         break;
 
       case 'closed':
         log('连接已关闭');
-        emit(state.copyWith(
-          status: CallStatus.error,
-          debugInfo: _appendDebug(state.debugInfo, '连接已关闭'),
-        ));
+        emit(state.copyWith(status: CallStatus.error));
         break;
     }
   }
@@ -284,7 +254,7 @@ class VoiceCallBloc extends Bloc<VoiceCallEvent, VoiceCallState> {
 
   void _startSpeakingWatchdog() {
     _speakingWatchdog?.cancel();
-    _speakingWatchdog = Timer.periodic(const Duration(seconds: 2), (_) {
+    _speakingWatchdog = Timer.periodic(const Duration(seconds: 2), (_) async {
       if (state.status != CallStatus.speaking) {
         _speakingWatchdog?.cancel();
         return;
@@ -294,7 +264,7 @@ class VoiceCallBloc extends Bloc<VoiceCallEvent, VoiceCallState> {
           DateTime.now().difference(lastDelta).inSeconds >= 6) {
         log('AI speaking 超过 6 秒无新音频, 强制重置为 listening');
         _lastAudioDeltaTime = null;
-        _audioPlayerService.flushAccumulatedAudio();
+        await _audioPlayerService.flushAccumulatedAudio();
         add(const _VoiceCallForceListening());
       }
     });
@@ -302,9 +272,9 @@ class VoiceCallBloc extends Bloc<VoiceCallEvent, VoiceCallState> {
 
   void _startPlayerWatchdog() {
     _playerWatchdog?.cancel();
-    _playerWatchdog = Timer.periodic(const Duration(seconds: 3), (_) {
+    _playerWatchdog = Timer.periodic(const Duration(seconds: 3), (_) async {
       if (_audioPlayerService.isStuck) {
-        _audioPlayerService.forceReset();
+        await _audioPlayerService.forceReset();
       }
     });
   }
@@ -316,13 +286,8 @@ class VoiceCallBloc extends Bloc<VoiceCallEvent, VoiceCallState> {
     await _messageSubscription?.cancel();
     await _audioSubscription?.cancel();
     await _audioRecorderService.stopRecording();
-    _audioPlayerService.cancelPlaying();
+    await _audioPlayerService.cancelPlaying();
     _webSocketService.disconnect();
     return super.close();
-  }
-
-  String _appendDebug(String current, String line) {
-    // 调试日志已关闭，保留方法避免大面积改动
-    return current;
   }
 }

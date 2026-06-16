@@ -42,13 +42,13 @@ class _AgentListPageState extends State<AgentListPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.transparent,
+      backgroundColor: AppColors.bg,
       body: Column(
         children: [
           AppHeader(
             title: '智能体',
             leading: IconButton(
-              onPressed: () => context.go('/'),
+              onPressed: () => context.canPop() ? context.pop() : context.go('/'),
               icon: const Icon(Icons.arrow_back, color: Colors.white),
             ),
           ),
@@ -217,7 +217,7 @@ class _AgentListPageState extends State<AgentListPage> {
 
   Widget _buildAgentCard(Agent agent) {
     return GestureDetector(
-      onTap: () => context.go('/chat/detail?agentId=${agent.id}'),
+      onTap: () => context.push('/chat/detail?agentId=${agent.id}'),
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.all(16),

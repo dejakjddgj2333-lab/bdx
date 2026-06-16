@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'core/constants/app_theme.dart';
@@ -26,7 +27,15 @@ class App extends StatelessWidget {
       child: MaterialApp.router(
         title: '北斗星AI',
         debugShowCheckedModeBanner: false,
-        theme: AppTheme.darkTheme,
+        theme: AppTheme.darkTheme.copyWith(
+          platform: TargetPlatform.iOS,
+          pageTransitionsTheme: const PageTransitionsTheme(
+            builders: {
+              TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
+              TargetPlatform.android: CupertinoPageTransitionsBuilder(),
+            },
+          ),
+        ),
         routerConfig: _router,
         builder: (context, child) => TechBackground(child: child ?? const SizedBox.shrink()),
       ),
@@ -52,50 +61,68 @@ final GoRouter _router = GoRouter(
   routes: [
     GoRoute(
       path: '/',
-      builder: (context, state) => BlocProvider(
-        create: (_) => getIt<ChatListBloc>()..add(const ChatListLoaded()),
-        child: const ChatListPage(),
+      pageBuilder: (context, state) => CupertinoPage(
+        key: state.pageKey,
+        child: BlocProvider(
+          create: (_) => getIt<ChatListBloc>()..add(const ChatListLoaded()),
+          child: const ChatListPage(),
+        ),
       ),
     ),
     GoRoute(
       path: '/login',
-      builder: (context, state) {
+      pageBuilder: (context, state) {
         final redirect = state.uri.queryParameters['redirect'];
-        return LoginPage(redirect: redirect);
+        return CupertinoPage(
+          key: state.pageKey,
+          child: LoginPage(redirect: redirect),
+        );
       },
     ),
     GoRoute(
       path: '/chat/detail',
-      builder: (context, state) {
+      pageBuilder: (context, state) {
         final id = state.uri.queryParameters['id'];
         final agentId = state.uri.queryParameters['agentId'];
         final content = state.uri.queryParameters['content'];
-        return BlocProvider(
-          create: (_) => getIt<ChatDetailBloc>(),
-          child: ChatDetailPage(
-            conversationId: id,
-            agentId: agentId,
-            initialContent: content,
+        return CupertinoPage(
+          key: state.pageKey,
+          child: BlocProvider(
+            create: (_) => getIt<ChatDetailBloc>(),
+            child: ChatDetailPage(
+              conversationId: id,
+              agentId: agentId,
+              initialContent: content,
+            ),
           ),
         );
       },
     ),
     GoRoute(
       path: '/agents',
-      builder: (context, state) => BlocProvider(
-        create: (_) => getIt<AgentBloc>()..add(const AgentLoaded()),
-        child: const AgentListPage(),
+      pageBuilder: (context, state) => CupertinoPage(
+        key: state.pageKey,
+        child: BlocProvider(
+          create: (_) => getIt<AgentBloc>()..add(const AgentLoaded()),
+          child: const AgentListPage(),
+        ),
       ),
     ),
     GoRoute(
       path: '/profile',
-      builder: (context, state) => const ProfilePage(),
+      pageBuilder: (context, state) => CupertinoPage(
+        key: state.pageKey,
+        child: const ProfilePage(),
+      ),
     ),
     GoRoute(
       path: '/voice-call',
-      builder: (context, state) => BlocProvider(
-        create: (_) => getIt<VoiceCallBloc>(),
-        child: const VoiceCallPage(),
+      pageBuilder: (context, state) => CupertinoPage(
+        key: state.pageKey,
+        child: BlocProvider(
+          create: (_) => getIt<VoiceCallBloc>(),
+          child: const VoiceCallPage(),
+        ),
       ),
     ),
   ],
