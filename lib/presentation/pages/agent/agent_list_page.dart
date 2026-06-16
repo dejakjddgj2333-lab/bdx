@@ -217,7 +217,7 @@ class _AgentListPageState extends State<AgentListPage> {
 
   Widget _buildAgentCard(Agent agent) {
     return GestureDetector(
-      onTap: () => context.go('/chat/detail?agentId=${agent.id}'),
+      onTap: () => context.push('/chat/detail?agentId=${agent.id}'),
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.all(16),

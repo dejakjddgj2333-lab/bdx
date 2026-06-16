@@ -59,7 +59,7 @@ class _ChatListPageState extends State<ChatListPage> {
                     icon: Icon(_showSearch ? Icons.close : Icons.search, color: Colors.white),
                   ),
                   IconButton(
-                    onPressed: () => context.go('/chat/detail'),
+                    onPressed: () => context.push('/chat/detail'),
                     icon: const Icon(Icons.add_circle_outline, color: Colors.white),
                   ),
                 ],
@@ -224,7 +224,7 @@ class _ChatListPageState extends State<ChatListPage> {
               icon: Icons.smart_toy_outlined,
               label: '发现智能体',
               gradient: AppColors.primaryGradient,
-              onTap: () => context.go('/agents'),
+              onTap: () => context.push('/agents'),
             ),
           ),
           const SizedBox(width: 12),
@@ -237,7 +237,7 @@ class _ChatListPageState extends State<ChatListPage> {
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
-              onTap: () => context.go('/voice-call'),
+              onTap: () => context.push('/voice-call'),
             ),
           ),
         ],
@@ -405,7 +405,7 @@ class _ChatListPageState extends State<ChatListPage> {
           ],
         ),
         child: GestureDetector(
-          onTap: () => context.go('/chat/detail?id=${conversation.id}'),
+          onTap: () => context.push('/chat/detail?id=${conversation.id}'),
           child: Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
