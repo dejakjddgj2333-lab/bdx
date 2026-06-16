@@ -1,6 +1,6 @@
 // 应用全局接口配置
 // 如需本地开发联调，把 USE_DEV_SERVER 改成 true 即可
-const bool USE_DEV_SERVER = true;
+const bool USE_DEV_SERVER = false;
 
 const String DEV_BASE_URL = 'http://localhost:3002/api';
 const String DEV_WS_URL = 'ws://localhost:3002/ws/voice-call';
