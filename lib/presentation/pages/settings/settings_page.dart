@@ -225,7 +225,7 @@ class SettingsPage extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
           color: isSelected
               ? AppColors.primary.withOpacity(0.15)
@@ -236,27 +236,59 @@ class SettingsPage extends StatelessWidget {
           ),
         ),
         child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(
-              voice.categoryIcon,
-              color: isSelected ? AppColors.primaryLight : colors.textSecondary,
-              size: 22,
-            ),
-            const SizedBox(width: 12),
-            Text(
-              voice.displayName,
-              style: TextStyle(
-                color: isSelected ? colors.text : colors.textSecondary,
-                fontSize: 15,
-                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+            Padding(
+              padding: const EdgeInsets.only(top: 2),
+              child: Icon(
+                voice.categoryIcon,
+                color: isSelected ? AppColors.primaryLight : colors.textSecondary,
+                size: 22,
               ),
             ),
-            const Spacer(),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    voice.displayName,
+                    style: TextStyle(
+                      color: isSelected ? colors.text : colors.textSecondary,
+                      fontSize: 15,
+                      fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    voice.description,
+                    style: TextStyle(
+                      color: colors.textTertiary,
+                      fontSize: 12,
+                      height: 1.4,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    '适合：${voice.scenario}',
+                    style: TextStyle(
+                      color: colors.textTertiary,
+                      fontSize: 11,
+                      height: 1.4,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
             if (isSelected)
-              Icon(
-                Icons.check_circle,
-                color: AppColors.primaryLight,
-                size: 20,
+              Padding(
+                padding: const EdgeInsets.only(top: 2),
+                child: Icon(
+                  Icons.check_circle,
+                  color: AppColors.primaryLight,
+                  size: 20,
+                ),
               ),
           ],
         ),

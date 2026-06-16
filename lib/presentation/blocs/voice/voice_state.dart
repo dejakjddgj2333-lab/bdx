@@ -4,7 +4,7 @@ import '../../../core/constants/conversation_voice.dart';
 class VoiceState extends Equatable {
   final ConversationVoice voice;
 
-  const VoiceState({this.voice = ConversationVoice.coral});
+  const VoiceState({this.voice = ConversationVoice.tina});
 
   VoiceState copyWith({ConversationVoice? voice}) {
     return VoiceState(voice: voice ?? this.voice);
