@@ -36,22 +36,8 @@ class AudioPlayerService {
     await dispose();
 
     try {
-      // flutter_pcm_sound 的 setup 会设置 AVAudioSession category，但不会带选项。
-      // 先让插件初始化，再用 audio_session 补充 defaultToSpeaker/allowBluetooth。
-      await FlutterPcmSound.setLogLevel(LogLevel.standard);
-      await FlutterPcmSound.setup(
-        sampleRate: _sampleRate,
-        channelCount: _channels,
-        iosAudioCategory: IosAudioCategory.playAndRecord,
-      );
-      _emitLog('flutter_pcm_sound setup 完成: $_sampleRate Hz, $_channels ch');
-    } catch (e) {
-      _emitLog('flutter_pcm_sound setup 失败: $e');
-      await dispose();
-      rethrow;
-    }
-
-    try {
+      // 先统一配置 AVAudioSession：mode、category options、sample rate，
+      // 然后再让 flutter_pcm_sound 创建 AudioUnit，避免中途重配导致格式错乱。
       final session = await AudioSession.instance;
       await session.configure(AudioSessionConfiguration(
         avAudioSessionCategory: AVAudioSessionCategory.playAndRecord,
@@ -66,10 +52,23 @@ class AudioPlayerService {
         androidAudioFocusGainType: AndroidAudioFocusGainType.gain,
       ));
       await session.setActive(true);
-      await FlutterPcmSound.setPreferredSampleRate(_sampleRate);
-      _emitLog('音频会话配置完成: voiceChat + defaultToSpeaker, sampleRate=$_sampleRate');
+      _emitLog('音频会话配置完成: voiceChat + defaultToSpeaker');
     } catch (e) {
       _emitLog('音频会话配置失败: $e');
+    }
+
+    try {
+      await FlutterPcmSound.setLogLevel(LogLevel.standard);
+      await FlutterPcmSound.setup(
+        sampleRate: _sampleRate,
+        channelCount: _channels,
+        iosAudioCategory: IosAudioCategory.playAndRecord,
+      );
+      _emitLog('flutter_pcm_sound setup 完成: $_sampleRate Hz, $_channels ch');
+    } catch (e) {
+      _emitLog('flutter_pcm_sound setup 失败: $e');
+      await dispose();
+      rethrow;
     }
 
     _initialized = true;

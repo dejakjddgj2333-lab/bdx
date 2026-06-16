@@ -35,6 +35,7 @@ typedef NS_ENUM(NSUInteger, LogLevel) {
 @property(nonatomic) BOOL mIsRecording;
 @property(nonatomic) int mInputSampleRate;
 @property(nonatomic) int mInputNumChannels;
+@property(nonatomic) NSUInteger mInputCallbackCount;
 @end
 
 @implementation FlutterPcmSoundPlugin
@@ -62,6 +63,7 @@ typedef NS_ENUM(NSUInteger, LogLevel) {
     instance.mIsRecording = NO;
     instance.mInputSampleRate = 24000;
     instance.mInputNumChannels = 1;
+    instance.mInputCallbackCount = 0;
 
 #if TARGET_OS_IOS
     NSNotificationCenter *nc = [NSNotificationCenter defaultCenter];
@@ -380,6 +382,8 @@ typedef NS_ENUM(NSUInteger, LogLevel) {
             }
 
             self.mIsRecording = YES;
+            self.mInputCallbackCount = 0;
+            NSLog(@"[PCM] startRecording");
             OSStatus status = AudioOutputUnitStart(_mAudioUnit);
             if (status != noErr) {
                 self.mIsRecording = NO;
@@ -503,7 +507,7 @@ static OSStatus RenderCallback(void *inRefCon,
     BOOL isLowBufferEvent = (remainingFrames <= feedThreshold) && (instance.mLastLowBufferFeed != totalFeeds);
     BOOL isZeroCrossingEvent = (remainingFrames == 0) && (instance.mLastZeroFeed != totalFeeds);
 
-    if (remainingFrames == 0) {
+    if (remainingFrames == 0 && !instance.mIsRecording) {
         dispatch_async(dispatch_get_main_queue(), ^{
             @synchronized (instance.mSamples) {
                 if ([instance.mSamples length] != 0) {return;}
@@ -550,6 +554,11 @@ static OSStatus InputCallback(void *inRefCon,
     AudioBuffer buffer = ioData->mBuffers[0];
     if (buffer.mData == NULL || buffer.mDataByteSize == 0) {
         return noErr;
+    }
+
+    instance.mInputCallbackCount++;
+    if (instance.mInputCallbackCount <= 3 || instance.mInputCallbackCount % 100 == 0) {
+        NSLog(@"[PCM] InputCallback #%lu: %u bytes", (unsigned long)instance.mInputCallbackCount, (unsigned int)buffer.mDataByteSize);
     }
 
     NSData *data = [NSData dataWithBytes:buffer.mData length:buffer.mDataByteSize];
