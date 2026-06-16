@@ -17,6 +17,8 @@ class VoiceCallSettingsState extends Equatable {
     this.error,
   });
 
+  bool get isLoaded => config != null;
+
   VoiceCallSettingsState copyWith({
     VoiceProviderConfig? config,
     String? selectedVoice,
@@ -38,22 +40,28 @@ class VoiceCallSettingsState extends Equatable {
 class VoiceCallSettingsCubit extends Cubit<VoiceCallSettingsState> {
   final ChatRepository _repository;
   final HiveStorage _storage;
+  bool _hasLoaded = false;
 
   VoiceCallSettingsCubit(this._repository, this._storage)
-      : super(const VoiceCallSettingsState(isLoading: true));
+      : super(const VoiceCallSettingsState());
 
-  Future<void> load() async {
+  /// 加载厂商/音色配置。已加载过时默认不再重复请求，除非 force=true。
+  Future<void> load({bool force = false}) async {
+    if (!force && _hasLoaded) return;
+
     emit(state.copyWith(isLoading: true, error: null));
     try {
       final config = await _repository.getVoiceProviderConfig();
       final savedVoice = _storage.getVoiceCallVoice(config.provider);
       final selectedVoice = savedVoice ?? config.defaultVoice;
+      _hasLoaded = true;
       emit(state.copyWith(
         config: config,
         selectedVoice: selectedVoice,
         isLoading: false,
       ));
     } catch (e) {
+      _hasLoaded = true;
       emit(state.copyWith(isLoading: false, error: e.toString()));
     }
   }
@@ -63,5 +71,10 @@ class VoiceCallSettingsCubit extends Cubit<VoiceCallSettingsState> {
     if (config == null) return;
     await _storage.setVoiceCallVoice(config.provider, voice);
     emit(state.copyWith(selectedVoice: voice));
+  }
+
+  /// 当后台切换厂商等场景需要刷新时调用
+  void resetLoaded() {
+    _hasLoaded = false;
   }
 }

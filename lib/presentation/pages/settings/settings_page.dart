@@ -166,23 +166,23 @@ class SettingsPage extends StatelessWidget {
       ),
       child: BlocBuilder<VoiceCallSettingsCubit, VoiceCallSettingsState>(
         builder: (context, state) {
-          if (state.isLoading || state.config == null) {
-            // 未加载时自动触发加载
-            if (state.config == null) {
-              context.read<VoiceCallSettingsCubit>().load();
-            }
-            return const Center(
-              child: Padding(
-                padding: EdgeInsets.all(16),
-                child: CircularProgressIndicator(strokeWidth: 2),
-              ),
-            );
+          if (!state.isLoaded && !state.isLoading && state.error == null) {
+            context.read<VoiceCallSettingsCubit>().load();
           }
 
           if (state.error != null) {
             return Text(
               '加载失败：${state.error}',
               style: TextStyle(color: colors.textSecondary, fontSize: 14),
+            );
+          }
+
+          if (state.isLoading || !state.isLoaded) {
+            return const Center(
+              child: Padding(
+                padding: EdgeInsets.all(16),
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
             );
           }
 
