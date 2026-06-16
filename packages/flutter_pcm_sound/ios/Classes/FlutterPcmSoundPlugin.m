@@ -563,37 +563,47 @@ static OSStatus InputCallback(void *inRefCon,
 {
     FlutterPcmSoundPlugin *instance = (__bridge FlutterPcmSoundPlugin *)(inRefCon);
 
-    if (!instance.mIsRecording || instance.mRecordingEventSink == nil || ioData == NULL) {
+    if (!instance.mIsRecording || instance.mRecordingEventSink == nil) {
         return noErr;
     }
 
-    // Render input samples into ioData. For VoiceProcessingIO/RemoteIO the callback
-    // is invoked when input is available, but we still have to call AudioUnitRender
-    // to actually get the microphone data into the buffer list.
-    OSStatus status = AudioUnitRender(instance.mAudioUnit, ioActionFlags, inTimeStamp, inBusNumber, inNumberFrames, ioData);
+    // Allocate our own buffer list for input. The ioData passed to the input
+    // callback of VoiceProcessingIO/RemoteIO is not pre-filled; we must call
+    // AudioUnitRender to pull microphone samples into a buffer we provide.
+    UInt32 bytesPerFrame = instance.mInputNumChannels * sizeof(short);
+    UInt32 bufferByteSize = inNumberFrames * bytesPerFrame;
+    AudioBufferList *bufferList = (AudioBufferList *)malloc(sizeof(AudioBufferList));
+    bufferList->mNumberBuffers = 1;
+    bufferList->mBuffers[0].mNumberChannels = instance.mInputNumChannels;
+    bufferList->mBuffers[0].mDataByteSize = bufferByteSize;
+    bufferList->mBuffers[0].mData = malloc(bufferByteSize);
+
+    OSStatus status = AudioUnitRender(instance.mAudioUnit, ioActionFlags, inTimeStamp, inBusNumber, inNumberFrames, bufferList);
     if (status != noErr) {
         NSLog(@"AudioUnitRender input failed. OSStatus: %@", @(status));
+        free(bufferList->mBuffers[0].mData);
+        free(bufferList);
         return status;
     }
 
-    AudioBuffer buffer = ioData->mBuffers[0];
-    if (buffer.mData == NULL || buffer.mDataByteSize == 0) {
-        return noErr;
-    }
-
-    instance.mInputCallbackCount++;
-    if (instance.mInputCallbackCount <= 3 || instance.mInputCallbackCount % 100 == 0) {
-        NSLog(@"[PCM] InputCallback #%lu: %u bytes", (unsigned long)instance.mInputCallbackCount, (unsigned int)buffer.mDataByteSize);
-    }
-
-    NSData *data = [NSData dataWithBytes:buffer.mData length:buffer.mDataByteSize];
-    dispatch_async(dispatch_get_main_queue(), ^{
-        if (instance.mIsRecording && instance.mRecordingEventSink) {
-            // Standard codec will encode NSData as FlutterStandardTypedData/Uint8List.
-            instance.mRecordingEventSink(data);
+    AudioBuffer buffer = bufferList->mBuffers[0];
+    if (buffer.mData != NULL && buffer.mDataByteSize > 0) {
+        instance.mInputCallbackCount++;
+        if (instance.mInputCallbackCount <= 3 || instance.mInputCallbackCount % 100 == 0) {
+            NSLog(@"[PCM] InputCallback #%lu: %u bytes", (unsigned long)instance.mInputCallbackCount, (unsigned int)buffer.mDataByteSize);
         }
-    });
 
+        NSData *data = [NSData dataWithBytes:buffer.mData length:buffer.mDataByteSize];
+        dispatch_async(dispatch_get_main_queue(), ^{
+            if (instance.mIsRecording && instance.mRecordingEventSink) {
+                // Standard codec will encode NSData as FlutterStandardTypedData/Uint8List.
+                instance.mRecordingEventSink(data);
+            }
+        });
+    }
+
+    free(buffer.mData);
+    free(bufferList);
     return noErr;
 }
 #endif
