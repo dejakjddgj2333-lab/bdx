@@ -7,6 +7,7 @@ export 'audio_recorder_service_stub.dart'
     if (dart.library.io) 'audio_recorder_service_mobile.dart';
 
 abstract class AudioRecorderService {
+  int get recordedFrameCount;
   Future<bool> hasPermission();
   Future<void> startRecording({required Function(List<int>) onData});
   Future<void> stopRecording();

@@ -122,6 +122,7 @@ class WebSocketService {
   }
 
   int _audioSendCount = 0;
+  int get audioSendCount => _audioSendCount;
 
   void sendAudio(List<int> pcmData) {
     final base64 = AudioUtils.bytesToBase64(Uint8List.fromList(pcmData));

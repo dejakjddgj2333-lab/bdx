@@ -4,6 +4,9 @@ import 'audio_recorder_service.dart';
 
 class AudioRecorderServiceImpl implements AudioRecorderService {
   @override
+  int get recordedFrameCount => 0;
+
+  @override
   Future<bool> hasPermission() async => true;
 
   @override

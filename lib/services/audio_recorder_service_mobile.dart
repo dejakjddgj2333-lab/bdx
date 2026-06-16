@@ -20,6 +20,9 @@ class AudioRecorderServiceImpl implements AudioRecorderService {
   _Pcm16Resampler? _resampler;
 
   @override
+  int get recordedFrameCount => _frameCount;
+
+  @override
   Future<bool> hasPermission() async {
     if (Platform.isIOS) {
       return await FlutterPcmSound.requestRecordPermission();

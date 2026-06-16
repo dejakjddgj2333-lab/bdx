@@ -8,6 +8,7 @@ import 'package:permission_handler/permission_handler.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../injection.dart';
 import '../../../services/audio_recorder_service.dart';
+import '../../../services/websocket_service.dart';
 import '../../blocs/auth/auth_bloc.dart';
 import '../../blocs/voice_call/voice_call_bloc.dart';
 
@@ -22,7 +23,9 @@ class _VoiceCallPageState extends State<VoiceCallPage>
     with SingleTickerProviderStateMixin, WidgetsBindingObserver {
   late AnimationController _waveController;
   Timer? _durationTimer;
+  Timer? _debugTimer;
   bool _microphoneDenied = false;
+  String _debugInfo = '';
 
   @override
   void initState() {
@@ -98,6 +101,22 @@ class _VoiceCallPageState extends State<VoiceCallPage>
     _durationTimer = Timer.periodic(const Duration(seconds: 1), (_) {
       context.read<VoiceCallBloc>().add(const VoiceCallDurationTick());
     });
+    _startDebugTimer();
+  }
+
+  void _startDebugTimer() {
+    _debugTimer?.cancel();
+    _debugTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (!mounted) return;
+      final recorder = getIt<AudioRecorderService>();
+      final ws = getIt<WebSocketService>();
+      final state = context.read<VoiceCallBloc>().state;
+      setState(() {
+        _debugInfo = 'status=${state.status.name}\n'
+            'rec=${recorder.recordedFrameCount}  sent=${ws.audioSendCount}\n'
+            'err=${state.error ?? "-"}';
+      });
+    });
   }
 
   @override
@@ -105,6 +124,7 @@ class _VoiceCallPageState extends State<VoiceCallPage>
     WidgetsBinding.instance.removeObserver(this);
     _waveController.dispose();
     _durationTimer?.cancel();
+    _debugTimer?.cancel();
     super.dispose();
   }
 
@@ -161,6 +181,23 @@ class _VoiceCallPageState extends State<VoiceCallPage>
                   ),
                 ),
                 const SizedBox(height: 24),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: colors.glassWhite,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    _debugInfo,
+                    style: TextStyle(
+                      color: colors.textSecondary,
+                      fontSize: 11,
+                      fontFamily: 'monospace',
+                      height: 1.4,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
                 const Spacer(),
                 _buildWaveAnimation(),
                 const SizedBox(height: 40),
