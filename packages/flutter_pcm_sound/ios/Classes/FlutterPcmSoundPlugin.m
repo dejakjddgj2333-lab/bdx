@@ -150,6 +150,15 @@ typedef NS_ENUM(NSUInteger, LogLevel) {
                 return;
             }
 
+            if (category == AVAudioSessionCategoryPlayAndRecord) {
+                [[AVAudioSession sharedInstance] setMode:AVAudioSessionModeVoiceChat error:&error];
+                if (error) {
+                    NSLog(@"Error setting AVAudioSession mode: %@", error);
+                    // non-fatal
+                    error = nil;
+                }
+            }
+
             // Match the hardware sample rate to our requested rate so input/output formats align.
             [[AVAudioSession sharedInstance] setPreferredSampleRate:[sampleRate doubleValue] error:&error];
             if (error) {
@@ -362,6 +371,22 @@ typedef NS_ENUM(NSUInteger, LogLevel) {
                 return;
             }
             result(@YES);
+        }
+        else if ([@"getIosAudioSessionInfo" isEqualToString:call.method])
+        {
+#if TARGET_OS_IOS
+            AVAudioSession *session = [AVAudioSession sharedInstance];
+            NSDictionary *info = @{
+                @"category": session.category ?: @"",
+                @"mode": session.mode ?: @"",
+                @"sampleRate": @(session.sampleRate),
+                @"inputAvailable": @(session.isInputAvailable),
+                @"inputNumberOfChannels": @(session.inputNumberOfChannels),
+            };
+            result(info);
+#else
+            result(@{});
+#endif
         }
         else if ([@"setFeedThreshold" isEqualToString:call.method])
         {

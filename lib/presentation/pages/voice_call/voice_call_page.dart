@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter_pcm_sound/flutter_pcm_sound.dart';
 import 'package:permission_handler/permission_handler.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../injection.dart';
@@ -106,15 +107,22 @@ class _VoiceCallPageState extends State<VoiceCallPage>
 
   void _startDebugTimer() {
     _debugTimer?.cancel();
-    _debugTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+    _debugTimer = Timer.periodic(const Duration(seconds: 1), (_) async {
       if (!mounted) return;
       final recorder = getIt<AudioRecorderService>();
       final ws = getIt<WebSocketService>();
       final state = context.read<VoiceCallBloc>().state;
+      String sessionInfo = '';
+      if (Platform.isIOS) {
+        try {
+          final info = await FlutterPcmSound.getIosAudioSessionInfo();
+          sessionInfo = '\n${info['mode'] ?? '-'} ${info['sampleRate'] ?? '-'}Hz in=${info['inputAvailable'] ?? '-'}';
+        } catch (_) {}
+      }
       setState(() {
         _debugInfo = 'status=${state.status.name}\n'
             'rec=${recorder.recordedFrameCount}  sent=${ws.audioSendCount}\n'
-            'err=${state.error ?? "-"}';
+            'err=${state.error ?? "-"}$sessionInfo';
       });
     });
   }

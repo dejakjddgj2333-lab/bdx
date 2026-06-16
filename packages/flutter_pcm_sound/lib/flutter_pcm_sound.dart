@@ -70,6 +70,15 @@ class FlutterPcmSound {
     return result == true;
   }
 
+  /// Get iOS AVAudioSession diagnostic info.
+  static Future<Map<String, dynamic>> getIosAudioSessionInfo() async {
+    final result = await _invokeMethod('getIosAudioSessionInfo');
+    if (result is Map) {
+      return result.cast<String, dynamic>();
+    }
+    return {};
+  }
+
   /// set the threshold at which we call the
   /// feed callback. i.e. if we have less than X
   /// queued frames, the feed callback will be invoked
