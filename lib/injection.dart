@@ -16,6 +16,7 @@ import 'presentation/blocs/chat_list/chat_list_bloc.dart';
 import 'presentation/blocs/chat_detail/chat_detail_bloc.dart';
 import 'presentation/blocs/agent/agent_bloc.dart';
 import 'presentation/blocs/theme/theme_cubit.dart';
+import 'presentation/blocs/voice/voice_cubit.dart';
 import 'presentation/blocs/voice_call/voice_call_bloc.dart';
 import 'services/audio_player_service.dart';
 import 'services/audio_recorder_service.dart';
@@ -30,6 +31,9 @@ Future<void> configureDependencies() async {
 
   // 主题
   getIt.registerLazySingleton(() => ThemeCubit(getIt<HiveStorage>()));
+
+  // 语音通话声音
+  getIt.registerLazySingleton(() => VoiceCubit(getIt<HiveStorage>()));
 
   // API 客户端
   getIt.registerSingleton(ApiClient(getIt<SecureStorage>()));
@@ -71,5 +75,6 @@ Future<void> configureDependencies() async {
         getIt<WebSocketService>(),
         getIt<AudioRecorderService>(),
         getIt<AudioPlayerService>(),
+        getIt<VoiceCubit>(),
       ));
 }

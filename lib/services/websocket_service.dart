@@ -80,13 +80,14 @@ class WebSocketService {
     _messageController.add(data);
   }
 
-  void sendConfig() {
+  void sendConfig({String? voice}) {
     final config = {
       'event_id': 'event_${DateTime.now().millisecondsSinceEpoch}',
       'type': 'session.update',
       'session': {
         'modalities': ['text', 'audio'],
         'instructions': '你是北斗星AI，一个 helpful 的语音助手，请用中文回答用户问题。',
+        'voice': voice ?? 'coral',
         'turn_detection': {
           'type': 'server_vad',
           'threshold': 0.5,

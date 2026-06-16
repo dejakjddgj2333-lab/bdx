@@ -11,6 +11,7 @@ import 'presentation/blocs/chat_detail/chat_detail_bloc.dart';
 import 'presentation/blocs/chat_list/chat_list_bloc.dart';
 import 'presentation/blocs/theme/theme_cubit.dart';
 import 'presentation/blocs/theme/theme_state.dart';
+import 'presentation/blocs/voice/voice_cubit.dart';
 import 'presentation/blocs/voice_call/voice_call_bloc.dart';
 import 'presentation/pages/agent/agent_list_page.dart';
 import 'presentation/pages/chat/chat_detail_page.dart';
@@ -32,6 +33,7 @@ class App extends StatelessWidget {
           create: (_) => getIt<AuthBloc>()..add(const AuthCheckRequested()),
         ),
         BlocProvider<ThemeCubit>.value(value: getIt<ThemeCubit>()),
+        BlocProvider<VoiceCubit>.value(value: getIt<VoiceCubit>()),
       ],
       child: BlocBuilder<ThemeCubit, ThemeState>(
         builder: (context, themeState) {

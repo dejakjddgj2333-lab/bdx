@@ -3,9 +3,11 @@ import 'dart:developer';
 import 'dart:typed_data';
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../core/constants/conversation_voice.dart';
 import '../../../services/audio_player_service.dart';
 import '../../../services/audio_recorder_service.dart';
 import '../../../services/websocket_service.dart';
+import '../voice/voice_cubit.dart';
 
 part 'voice_call_event.dart';
 part 'voice_call_state.dart';
@@ -14,6 +16,7 @@ class VoiceCallBloc extends Bloc<VoiceCallEvent, VoiceCallState> {
   final WebSocketService _webSocketService;
   final AudioRecorderService _audioRecorderService;
   final AudioPlayerService _audioPlayerService;
+  final VoiceCubit _voiceCubit;
 
   StreamSubscription? _messageSubscription;
   StreamSubscription? _audioSubscription;
@@ -25,6 +28,7 @@ class VoiceCallBloc extends Bloc<VoiceCallEvent, VoiceCallState> {
     this._webSocketService,
     this._audioRecorderService,
     this._audioPlayerService,
+    this._voiceCubit,
   ) : super(const VoiceCallState()) {
     on<VoiceCallStarted>(_onStarted);
     on<VoiceCallHangup>(_onHangup);
@@ -124,7 +128,8 @@ class VoiceCallBloc extends Bloc<VoiceCallEvent, VoiceCallState> {
     switch (type) {
       case 'session.created':
         log('session.created, 发送配置');
-        _webSocketService.sendConfig();
+        final voice = _voiceCubit.state.voice.serverValue;
+        _webSocketService.sendConfig(voice: voice);
         await Future.delayed(const Duration(milliseconds: 200));
         if (!state.isMuted) {
           log('启动录音');
