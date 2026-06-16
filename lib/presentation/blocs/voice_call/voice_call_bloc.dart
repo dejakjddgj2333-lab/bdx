@@ -21,6 +21,7 @@ class VoiceCallBloc extends Bloc<VoiceCallEvent, VoiceCallState> {
   StreamSubscription? _audioSubscription;
   Timer? _speakingWatchdog;
   Timer? _playerWatchdog;
+  Timer? _micResumeTimer;
   DateTime? _lastAudioDeltaTime;
   bool _micPausedForAi = false;
 
@@ -92,6 +93,7 @@ class VoiceCallBloc extends Bloc<VoiceCallEvent, VoiceCallState> {
     log('通话挂断');
     _speakingWatchdog?.cancel();
     _playerWatchdog?.cancel();
+    _micResumeTimer?.cancel();
     _micPausedForAi = false;
     await _audioRecorderService.stopRecording();
     await _audioPlayerService.dispose();
@@ -112,6 +114,8 @@ class VoiceCallBloc extends Bloc<VoiceCallEvent, VoiceCallState> {
     if (!state.status.isInCall) return;
 
     if (newValue) {
+      _micResumeTimer?.cancel();
+      _micPausedForAi = false;
       await _audioRecorderService.stopRecording();
     } else if (state.status != CallStatus.speaking) {
       // AI 说话时先不打开麦克风，等 AI 说完再自动恢复，避免回音。
@@ -230,13 +234,17 @@ class VoiceCallBloc extends Bloc<VoiceCallEvent, VoiceCallState> {
         _lastAudioDeltaTime = null;
         await _audioPlayerService.flushAccumulatedAudio();
         emit(state.copyWith(status: CallStatus.listening));
-        _webSocketService.updateVadThreshold(0.3);
+        _webSocketService.updateVadThreshold(0.4);
         if (_micPausedForAi && !state.isMuted) {
-          _micPausedForAi = false;
-          log('AI 说完，恢复麦克风');
-          await _audioRecorderService.startRecording(
-            onData: (data) => _webSocketService.sendAudio(data),
-          );
+          _micResumeTimer?.cancel();
+          _micResumeTimer = Timer(const Duration(milliseconds: 500), () async {
+            _micPausedForAi = false;
+            if (state.isMuted || !state.status.isInCall) return;
+            log('AI 说完 500ms 尾音消退后，恢复麦克风');
+            await _audioRecorderService.startRecording(
+              onData: (data) => _webSocketService.sendAudio(data),
+            );
+          });
         }
         break;
 
@@ -309,6 +317,7 @@ class VoiceCallBloc extends Bloc<VoiceCallEvent, VoiceCallState> {
   Future<void> close() async {
     _speakingWatchdog?.cancel();
     _playerWatchdog?.cancel();
+    _micResumeTimer?.cancel();
     _micPausedForAi = false;
     await _messageSubscription?.cancel();
     await _audioSubscription?.cancel();
