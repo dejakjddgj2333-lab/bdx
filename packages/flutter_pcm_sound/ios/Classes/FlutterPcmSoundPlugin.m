@@ -6,6 +6,7 @@
 #endif
 
 #define kOutputBus 0
+#define kInputBus 1
 #define NAMESPACE @"flutter_pcm_sound"
 
 typedef NS_ENUM(NSUInteger, LogLevel) {
@@ -15,20 +16,25 @@ typedef NS_ENUM(NSUInteger, LogLevel) {
     verbose = 3,
 };
 
-@interface FlutterPcmSoundPlugin ()
+@interface FlutterPcmSoundPlugin () <FlutterStreamHandler>
 @property(nonatomic) NSObject<FlutterPluginRegistrar> *registrar;
 @property(nonatomic) FlutterMethodChannel *mMethodChannel;
+@property(nonatomic) FlutterEventChannel *mRecordingEventChannel;
+@property(nonatomic) FlutterEventSink mRecordingEventSink;
 @property(nonatomic) LogLevel mLogLevel;
 @property(nonatomic) AudioComponentInstance mAudioUnit;
 @property(nonatomic) NSMutableData *mSamples;
-@property(nonatomic) int mNumChannels; 
-@property(nonatomic) int mFeedThreshold; 
+@property(nonatomic) int mNumChannels;
+@property(nonatomic) int mFeedThreshold;
 @property(nonatomic) NSUInteger mTotalFeeds;
 @property(nonatomic) NSUInteger mLastLowBufferFeed;
 @property(nonatomic) NSUInteger mLastZeroFeed;
 @property(nonatomic) bool mDidSetup;
 @property(nonatomic) BOOL mIsAppActive;
 @property(nonatomic) BOOL mAllowBackgroundAudio;
+@property(nonatomic) BOOL mIsRecording;
+@property(nonatomic) int mInputSampleRate;
+@property(nonatomic) int mInputNumChannels;
 @end
 
 @implementation FlutterPcmSoundPlugin
@@ -37,9 +43,13 @@ typedef NS_ENUM(NSUInteger, LogLevel) {
 {
     FlutterMethodChannel *methodChannel = [FlutterMethodChannel methodChannelWithName:NAMESPACE @"/methods"
                                                                     binaryMessenger:[registrar messenger]];
+    FlutterEventChannel *eventChannel = [FlutterEventChannel eventChannelWithName:NAMESPACE @"/recording"
+                                                                  binaryMessenger:[registrar messenger]];
 
     FlutterPcmSoundPlugin *instance = [[FlutterPcmSoundPlugin alloc] init];
     instance.mMethodChannel = methodChannel;
+    instance.mRecordingEventChannel = eventChannel;
+    instance.mRecordingEventSink = nil;
     instance.mLogLevel = verbose;
     instance.mSamples = [NSMutableData new];
     instance.mFeedThreshold = 8000;
@@ -49,6 +59,9 @@ typedef NS_ENUM(NSUInteger, LogLevel) {
     instance.mDidSetup = false;
     instance.mIsAppActive = true;
     instance.mAllowBackgroundAudio = false;
+    instance.mIsRecording = NO;
+    instance.mInputSampleRate = 24000;
+    instance.mInputNumChannels = 1;
 
 #if TARGET_OS_IOS
     NSNotificationCenter *nc = [NSNotificationCenter defaultCenter];
@@ -56,6 +69,7 @@ typedef NS_ENUM(NSUInteger, LogLevel) {
     [nc addObserver:instance selector:@selector(onDidBecomeActive:) name:UIApplicationDidBecomeActiveNotification object:nil];
 #endif
 
+    [eventChannel setStreamHandler:instance];
     [registrar addMethodCallDelegate:instance channel:methodChannel];
 }
 
@@ -68,6 +82,20 @@ typedef NS_ENUM(NSUInteger, LogLevel) {
   self.mIsAppActive = YES;
 }
 #endif
+
+#pragma mark - FlutterStreamHandler
+
+- (FlutterError *)onListenWithArguments:(id)arguments eventSink:(FlutterEventSink)events {
+    self.mRecordingEventSink = events;
+    return nil;
+}
+
+- (FlutterError *)onCancelWithArguments:(id)arguments {
+    self.mRecordingEventSink = nil;
+    return nil;
+}
+
+#pragma mark - Method calls
 
 - (void)handleMethodCall:(FlutterMethodCall *)call result:(FlutterResult)result
 {
@@ -93,6 +121,8 @@ typedef NS_ENUM(NSUInteger, LogLevel) {
 #endif
 
             self.mNumChannels = [numChannels intValue];
+            self.mInputSampleRate = [sampleRate intValue];
+            self.mInputNumChannels = self.mNumChannels;
 
 #if TARGET_OS_IOS
             // iOS audio category
@@ -107,24 +137,22 @@ typedef NS_ENUM(NSUInteger, LogLevel) {
             else if ([iosAudioCategory isEqualToString:@"playAndRecord"]) {
                 category = AVAudioSessionCategoryPlayAndRecord;
             }
-            
-            // Set the AVAudioSession category based on the string value
+
             NSError *error = nil;
             [[AVAudioSession sharedInstance] setCategory:category error:&error];
             if (error) {
                 NSLog(@"Error setting AVAudioSession category: %@", error);
-                result([FlutterError errorWithCode:@"AVAudioSessionError" 
-                                        message:@"Error setting AVAudioSession category" 
+                result([FlutterError errorWithCode:@"AVAudioSessionError"
+                                        message:@"Error setting AVAudioSession category"
                                         details:[error localizedDescription]]);
                 return;
             }
-            
-            // Activate the audio session
+
             [[AVAudioSession sharedInstance] setActive:YES error:&error];
             if (error) {
                 NSLog(@"Error activating AVAudioSession: %@", error);
-                result([FlutterError errorWithCode:@"AVAudioSessionError" 
-                                        message:@"Error activating AVAudioSession" 
+                result([FlutterError errorWithCode:@"AVAudioSessionError"
+                                        message:@"Error activating AVAudioSession"
                                         details:[error localizedDescription]]);
                 return;
             }
@@ -155,7 +183,7 @@ typedef NS_ENUM(NSUInteger, LogLevel) {
                 return;
             }
 
-            // set stream format
+            // stream format
             AudioStreamBasicDescription audioFormat;
             audioFormat.mSampleRate = [sampleRate intValue];
             audioFormat.mFormatID = kAudioFormatLinearPCM;
@@ -166,6 +194,7 @@ typedef NS_ENUM(NSUInteger, LogLevel) {
             audioFormat.mBytesPerFrame = self.mNumChannels * (audioFormat.mBitsPerChannel / 8);
             audioFormat.mBytesPerPacket = audioFormat.mBytesPerFrame * audioFormat.mFramesPerPacket;
 
+            // output format
             status = AudioUnitSetProperty(_mAudioUnit,
                                     kAudioUnitProperty_StreamFormat,
                                     kAudioUnitScope_Input,
@@ -173,12 +202,12 @@ typedef NS_ENUM(NSUInteger, LogLevel) {
                                     &audioFormat,
                                     sizeof(audioFormat));
             if (status != noErr) {
-                NSString* message = [NSString stringWithFormat:@"AudioUnitSetProperty StreamFormat failed. OSStatus: %@", @(status)];
+                NSString* message = [NSString stringWithFormat:@"AudioUnitSetProperty Output StreamFormat failed. OSStatus: %@", @(status)];
                 result([FlutterError errorWithCode:@"AudioUnitError" message:message details:nil]);
                 return;
             }
 
-            // set callback
+            // output callback
             AURenderCallbackStruct callback;
             callback.inputProc = RenderCallback;
             callback.inputProcRefCon = (__bridge void *)(self);
@@ -195,6 +224,52 @@ typedef NS_ENUM(NSUInteger, LogLevel) {
                 return;
             }
 
+#if TARGET_OS_IOS
+            // enable input
+            UInt32 enableInput = 1;
+            status = AudioUnitSetProperty(_mAudioUnit,
+                                          kAudioOutputUnitProperty_EnableIO,
+                                          kAudioUnitScope_Input,
+                                          kInputBus,
+                                          &enableInput,
+                                          sizeof(enableInput));
+            if (status != noErr) {
+                NSString* message = [NSString stringWithFormat:@"AudioUnitSetProperty EnableIO failed. OSStatus: %@", @(status)];
+                result([FlutterError errorWithCode:@"AudioUnitError" message:message details:nil]);
+                return;
+            }
+
+            // input format
+            status = AudioUnitSetProperty(_mAudioUnit,
+                                          kAudioUnitProperty_StreamFormat,
+                                          kAudioUnitScope_Output,
+                                          kInputBus,
+                                          &audioFormat,
+                                          sizeof(audioFormat));
+            if (status != noErr) {
+                NSString* message = [NSString stringWithFormat:@"AudioUnitSetProperty Input StreamFormat failed. OSStatus: %@", @(status)];
+                result([FlutterError errorWithCode:@"AudioUnitError" message:message details:nil]);
+                return;
+            }
+
+            // input callback
+            AURenderCallbackStruct inputCallback;
+            inputCallback.inputProc = InputCallback;
+            inputCallback.inputProcRefCon = (__bridge void *)(self);
+
+            status = AudioUnitSetProperty(_mAudioUnit,
+                                          kAudioOutputUnitProperty_SetInputCallback,
+                                          kAudioUnitScope_Global,
+                                          kInputBus,
+                                          &inputCallback,
+                                          sizeof(inputCallback));
+            if (status != noErr) {
+                NSString* message = [NSString stringWithFormat:@"AudioUnitSetProperty SetInputCallback failed. OSStatus: %@", @(status)];
+                result([FlutterError errorWithCode:@"AudioUnitError" message:message details:nil]);
+                return;
+            }
+#endif
+
             // initialize
             status = AudioUnitInitialize(_mAudioUnit);
             if (status != noErr) {
@@ -203,23 +278,27 @@ typedef NS_ENUM(NSUInteger, LogLevel) {
                 return;
             }
 
+#if TARGET_OS_IOS
+            // ensure voice processing AEC/AGC is enabled
+            UInt32 bypass = 0;
+            AudioUnitSetProperty(_mAudioUnit, kAUVoiceIOProperty_BypassVoiceProcessing, kAudioUnitScope_Global, kInputBus, &bypass, sizeof(bypass));
+            AudioUnitSetProperty(_mAudioUnit, kAUVoiceIOProperty_BypassVoiceProcessing, kAudioUnitScope_Global, kOutputBus, &bypass, sizeof(bypass));
+
+            UInt32 agc = 1;
+            AudioUnitSetProperty(_mAudioUnit, kAUVoiceIOProperty_VoiceProcessingEnableAGC, kAudioUnitScope_Global, kInputBus, &agc, sizeof(agc));
+#endif
+
             self.mDidSetup = true;
-            
+
             result(@YES);
         }
         else if ([@"feed" isEqualToString:call.method])
         {
-            // setup check
             if (self.mDidSetup == false) {
                 result([FlutterError errorWithCode:@"Setup" message:@"must call setup first" details:nil]);
                 return;
             }
 
-            // If background audio is not allowed, feeding immediately after a lock→unlock
-            // can cause AudioOutputUnitStart to fail with code 561015905 because the app is not
-            // fully active yet. Rather than surfacing this transient error, we report success
-            // and tell Dart the frames were consumed, prompting it to continue feeding.
-            // This hides the temporary failure and keeps the API simple.
             if (!self.mIsAppActive && !self.mAllowBackgroundAudio) {
                 @synchronized (self.mSamples) {[self.mSamples setLength:0];}
                 [self.mMethodChannel invokeMethod:@"OnFeedSamples" arguments:@{@"remaining_frames": @(0)}];
@@ -235,7 +314,6 @@ typedef NS_ENUM(NSUInteger, LogLevel) {
                 self.mTotalFeeds += 1;
             }
 
-            // start
             OSStatus status = AudioOutputUnitStart(_mAudioUnit);
             if (status != noErr) {
                 NSString* message = [NSString stringWithFormat:@"AudioOutputUnitStart failed. OSStatus: %@", @(status)];
@@ -272,6 +350,29 @@ typedef NS_ENUM(NSUInteger, LogLevel) {
 
             result(@YES);
         }
+        else if ([@"startRecording" isEqualToString:call.method])
+        {
+            if (self.mDidSetup == false) {
+                result([FlutterError errorWithCode:@"Setup" message:@"must call setup first" details:nil]);
+                return;
+            }
+
+            self.mIsRecording = YES;
+            OSStatus status = AudioOutputUnitStart(_mAudioUnit);
+            if (status != noErr) {
+                self.mIsRecording = NO;
+                NSString* message = [NSString stringWithFormat:@"AudioOutputUnitStart failed. OSStatus: %@", @(status)];
+                result([FlutterError errorWithCode:@"AudioUnitError" message:message details:nil]);
+                return;
+            }
+
+            result(@YES);
+        }
+        else if ([@"stopRecording" isEqualToString:call.method])
+        {
+            self.mIsRecording = NO;
+            result(@YES);
+        }
         else if([@"release" isEqualToString:call.method])
         {
             [self cleanup];
@@ -302,6 +403,7 @@ typedef NS_ENUM(NSUInteger, LogLevel) {
     @synchronized (self.mSamples) {
         [self.mSamples setLength:0];
     }
+    self.mIsRecording = NO;
 }
 
 - (void)stopAudioUnit
@@ -330,6 +432,7 @@ typedef NS_ENUM(NSUInteger, LogLevel) {
     }
 }
 
+#pragma mark - Callbacks
 
 static OSStatus RenderCallback(void *inRefCon,
                                AudioUnitRenderActionFlags *ioActionFlags,
@@ -346,39 +449,32 @@ static OSStatus RenderCallback(void *inRefCon,
 
     @synchronized (instance.mSamples) {
 
-        // clear
         memset(ioData->mBuffers[0].mData, 0, ioData->mBuffers[0].mDataByteSize);
 
         NSUInteger bytesToCopy = MIN(ioData->mBuffers[0].mDataByteSize, [instance.mSamples length]);
-        
-        // provide samples
+
         memcpy(ioData->mBuffers[0].mData, [instance.mSamples bytes], bytesToCopy);
 
-        // pop front bytes
         NSRange range = NSMakeRange(0, bytesToCopy);
         [instance.mSamples replaceBytesInRange:range withBytes:NULL length:0];
 
-        // grab shared data
         remainingFrames = [instance.mSamples length] / (instance.mNumChannels * sizeof(short));
         totalFeeds = instance.mTotalFeeds;
         feedThreshold = (NSUInteger)instance.mFeedThreshold;
     }
 
-    // check for events
     BOOL isLowBufferEvent = (remainingFrames <= feedThreshold) && (instance.mLastLowBufferFeed != totalFeeds);
     BOOL isZeroCrossingEvent = (remainingFrames == 0) && (instance.mLastZeroFeed != totalFeeds);
 
-    // stop running, if needed
     if (remainingFrames == 0) {
         dispatch_async(dispatch_get_main_queue(), ^{
-            @synchronized (instance.mSamples) { // re-check
+            @synchronized (instance.mSamples) {
                 if ([instance.mSamples length] != 0) {return;}
             }
             [instance stopAudioUnit];
         });
     }
 
-    // send events
     if (isLowBufferEvent || isZeroCrossingEvent) {
         if(isLowBufferEvent) {instance.mLastLowBufferFeed = totalFeeds;}
         if(isZeroCrossingEvent) {instance.mLastZeroFeed = totalFeeds;}
@@ -391,5 +487,35 @@ static OSStatus RenderCallback(void *inRefCon,
     return noErr;
 }
 
+#if TARGET_OS_IOS
+static OSStatus InputCallback(void *inRefCon,
+                              AudioUnitRenderActionFlags *ioActionFlags,
+                              const AudioTimeStamp *inTimeStamp,
+                              UInt32 inBusNumber,
+                              UInt32 inNumberFrames,
+                              AudioBufferList *ioData)
+{
+    FlutterPcmSoundPlugin *instance = (__bridge FlutterPcmSoundPlugin *)(inRefCon);
+
+    if (!instance.mIsRecording || instance.mRecordingEventSink == nil || ioData == NULL) {
+        return noErr;
+    }
+
+    AudioBuffer buffer = ioData->mBuffers[0];
+    if (buffer.mData == NULL || buffer.mDataByteSize == 0) {
+        return noErr;
+    }
+
+    NSData *data = [NSData dataWithBytes:buffer.mData length:buffer.mDataByteSize];
+    dispatch_async(dispatch_get_main_queue(), ^{
+        if (instance.mIsRecording && instance.mRecordingEventSink) {
+            // Standard codec will encode NSData as FlutterStandardTypedData/Uint8List.
+            instance.mRecordingEventSink(data);
+        }
+    });
+
+    return noErr;
+}
+#endif
 
 @end

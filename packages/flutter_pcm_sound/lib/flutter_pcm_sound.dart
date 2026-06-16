@@ -20,8 +20,10 @@ enum IosAudioCategory {
 
 class FlutterPcmSound {
   static const MethodChannel _channel = MethodChannel('flutter_pcm_sound/methods');
+  static const EventChannel _recordingChannel = EventChannel('flutter_pcm_sound/recording');
 
   static Function(int)? onFeedSamplesCallback;
+  static StreamController<Uint8List>? _recordingStreamController;
 
   static LogLevel _logLevel = LogLevel.standard;
 
@@ -66,6 +68,33 @@ class FlutterPcmSound {
   /// queued frames, the feed callback will be invoked
   static Future<void> setFeedThreshold(int threshold) async {
     return await _invokeMethod('setFeedThreshold', {'feed_threshold': threshold});
+  }
+
+  /// Start microphone recording (iOS only, uses the same VoiceProcessingIO as playback).
+  /// Returns a stream of PCM16 bytes at the setup sampleRate.
+  static Stream<Uint8List> startRecording() {
+    _recordingStreamController?.close();
+    _recordingStreamController = StreamController<Uint8List>.broadcast();
+    _invokeMethod('startRecording');
+    _recordingChannel.receiveBroadcastStream().listen(
+      (event) {
+        if (event is Uint8List) {
+          _recordingStreamController?.add(event);
+        } else if (event is List<int>) {
+          _recordingStreamController?.add(Uint8List.fromList(event));
+        }
+      },
+      onError: (Object error) => _recordingStreamController?.addError(error),
+      onDone: () => _recordingStreamController?.close(),
+    );
+    return _recordingStreamController!.stream;
+  }
+
+  /// Stop microphone recording.
+  static Future<void> stopRecording() async {
+    await _invokeMethod('stopRecording');
+    await _recordingStreamController?.close();
+    _recordingStreamController = null;
   }
 
   /// Your feed callback is invoked _once_ for each of these events:

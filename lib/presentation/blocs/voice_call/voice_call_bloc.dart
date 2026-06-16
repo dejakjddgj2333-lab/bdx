@@ -164,7 +164,7 @@ class VoiceCallBloc extends Bloc<VoiceCallEvent, VoiceCallState> {
         log('检测到用户开始说话');
         // 服务端处理打断，客户端不停止本地播放，只切换状态
         emit(state.copyWith(status: CallStatus.listening));
-        _webSocketService.updateVadThreshold(0.5);
+        _webSocketService.updateVadThreshold(0.3);
         break;
 
       case 'input_audio_buffer.speech_stopped':
@@ -227,7 +227,7 @@ class VoiceCallBloc extends Bloc<VoiceCallEvent, VoiceCallState> {
         _lastAudioDeltaTime = null;
         await _audioPlayerService.flushAccumulatedAudio();
         emit(state.copyWith(status: CallStatus.listening));
-        _webSocketService.updateVadThreshold(0.5);
+        _webSocketService.updateVadThreshold(0.3);
         break;
 
       case 'error':
