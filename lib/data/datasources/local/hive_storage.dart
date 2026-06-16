@@ -36,6 +36,15 @@ class HiveStorage {
     return value?.toString();
   }
 
+  Future<void> setVoiceCallVoice(String provider, String voice) async {
+    await _box.put('voice_call_voice_$provider', voice);
+  }
+
+  String? getVoiceCallVoice(String provider) {
+    final value = _box.get('voice_call_voice_$provider');
+    return value?.toString();
+  }
+
   Future<void> setJson(String key, Map<String, dynamic> value) async {
     await _box.put(key, jsonEncode(value));
   }

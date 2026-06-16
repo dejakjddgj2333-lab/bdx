@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 import '../entities/conversation.dart';
 import '../entities/message.dart';
+import '../entities/voice_provider_config.dart';
 
 abstract class ChatRepository {
   Future<List<Map<String, dynamic>>> getModels();
@@ -13,4 +14,5 @@ abstract class ChatRepository {
   Future<Message> sendMessage({required String conversationId, required dynamic content, String? model});
   Stream<Map<String, dynamic>> streamChat({required String conversationId, required dynamic content, String? model});
   Future<String> uploadImageBytes(Uint8List bytes, {String? filename});
+  Future<VoiceProviderConfig> getVoiceProviderConfig();
 }

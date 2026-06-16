@@ -51,4 +51,8 @@ class ChatApi {
   Future<Response> uploadImage(FormData formData) async {
     return _dio.post(ApiConstants.uploadImage, data: formData);
   }
+
+  Future<Response> getVoiceProvider() async {
+    return _dio.get(ApiConstants.voiceProvider);
+  }
 }

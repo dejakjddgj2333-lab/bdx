@@ -3,11 +3,10 @@ import 'dart:developer';
 import 'dart:typed_data';
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import '../../../core/constants/conversation_voice.dart';
 import '../../../services/audio_player_service.dart';
 import '../../../services/audio_recorder_service.dart';
 import '../../../services/websocket_service.dart';
-import '../voice/voice_cubit.dart';
+import '../voice_call_settings/voice_call_settings_cubit.dart';
 
 part 'voice_call_event.dart';
 part 'voice_call_state.dart';
@@ -16,7 +15,7 @@ class VoiceCallBloc extends Bloc<VoiceCallEvent, VoiceCallState> {
   final WebSocketService _webSocketService;
   final AudioRecorderService _audioRecorderService;
   final AudioPlayerService _audioPlayerService;
-  final VoiceCubit _voiceCubit;
+  final VoiceCallSettingsCubit _voiceCallSettingsCubit;
 
   StreamSubscription? _messageSubscription;
   StreamSubscription? _audioSubscription;
@@ -28,7 +27,7 @@ class VoiceCallBloc extends Bloc<VoiceCallEvent, VoiceCallState> {
     this._webSocketService,
     this._audioRecorderService,
     this._audioPlayerService,
-    this._voiceCubit,
+    this._voiceCallSettingsCubit,
   ) : super(const VoiceCallState()) {
     on<VoiceCallStarted>(_onStarted);
     on<VoiceCallHangup>(_onHangup);
@@ -48,6 +47,15 @@ class VoiceCallBloc extends Bloc<VoiceCallEvent, VoiceCallState> {
     log('通话开始连接');
 
     try {
+      // 0. 加载语音通话厂商/音色配置（失败不阻断连接，使用后端默认）
+      try {
+        await _voiceCallSettingsCubit.load();
+        final settingsState = _voiceCallSettingsCubit.state;
+        log('当前语音厂商: ${settingsState.config?.provider}, 音色: ${settingsState.selectedVoice ?? settingsState.config?.defaultVoice}');
+      } catch (configErr) {
+        log('加载语音通话配置失败，使用默认音色: $configErr');
+      }
+
       // 1. 先连 WebSocket，确保后端能收到连接请求并打印日志
       await _webSocketService.connect();
       log('WebSocket 已连接');
@@ -128,7 +136,8 @@ class VoiceCallBloc extends Bloc<VoiceCallEvent, VoiceCallState> {
     switch (type) {
       case 'session.created':
         log('session.created, 发送配置');
-        final voice = _voiceCubit.state.voice.serverValue;
+        final settingsState = _voiceCallSettingsCubit.state;
+        final voice = settingsState.selectedVoice ?? settingsState.config?.defaultVoice;
         _webSocketService.sendConfig(voice: voice);
         await Future.delayed(const Duration(milliseconds: 200));
         if (!state.isMuted) {

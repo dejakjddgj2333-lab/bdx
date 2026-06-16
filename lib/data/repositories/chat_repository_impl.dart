@@ -12,6 +12,7 @@ import '../../data/datasources/local/secure_storage.dart';
 import '../../data/datasources/remote/chat_api.dart';
 import '../../domain/entities/conversation.dart';
 import '../../domain/entities/message.dart';
+import '../../domain/entities/voice_provider_config.dart';
 import '../../domain/repositories/chat_repository.dart';
 
 class ChatRepositoryImpl implements ChatRepository {
@@ -271,6 +272,27 @@ class ChatRepositoryImpl implements ChatRepository {
       contentType: json['contentType']?.toString(),
       model: json['model']?.toString(),
       createdAt: _parseDate(json['createdAt'] ?? json['created_at']),
+    );
+  }
+
+  @override
+  Future<VoiceProviderConfig> getVoiceProviderConfig() async {
+    final res = await _chatApi.getVoiceProvider();
+    final data = _unwrap(res);
+    final payload = data['data'];
+    if (payload is Map<String, dynamic>) {
+      return VoiceProviderConfig.fromJson(payload);
+    }
+    return const VoiceProviderConfig(
+      provider: 'qwen',
+      name: '阿里百炼实时多模态',
+      voices: ['zhiyan', 'xiaogang', 'xiaomei'],
+      voiceLabels: {
+        'zhiyan': '知言',
+        'xiaogang': '小刚',
+        'xiaomei': '小美',
+      },
+      defaultVoice: 'zhiyan',
     );
   }
 
