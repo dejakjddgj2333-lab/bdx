@@ -310,7 +310,11 @@ class _VoiceCallPageState extends State<VoiceCallPage>
   void _goBack(BuildContext context) {
     _durationTimer?.cancel();
     context.read<VoiceCallBloc>().add(const VoiceCallHangup());
-    context.go('/');
+    if (context.canPop()) {
+      context.pop();
+    } else {
+      context.go('/');
+    }
   }
 
   Widget _buildPermissionDenied() {

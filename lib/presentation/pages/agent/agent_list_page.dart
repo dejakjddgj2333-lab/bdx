@@ -48,7 +48,7 @@ class _AgentListPageState extends State<AgentListPage> {
           AppHeader(
             title: '智能体',
             leading: IconButton(
-              onPressed: () => context.go('/'),
+              onPressed: () => context.canPop() ? context.pop() : context.go('/'),
               icon: const Icon(Icons.arrow_back, color: Colors.white),
             ),
           ),

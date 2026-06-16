@@ -102,7 +102,7 @@ class _ChatDetailPageState extends State<ChatDetailPage>
               AppHeader(
                 title: '',
                 leading: IconButton(
-                  onPressed: () => context.go('/'),
+                  onPressed: () => context.canPop() ? context.pop() : context.go('/'),
                   icon: const Icon(Icons.arrow_back, color: Colors.white),
                 ),
                 actions: [

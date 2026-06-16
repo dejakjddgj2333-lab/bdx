@@ -17,7 +17,7 @@ class ProfilePage extends StatelessWidget {
           AppHeader(
             title: '我的',
             leading: IconButton(
-              onPressed: () => context.go('/'),
+              onPressed: () => context.canPop() ? context.pop() : context.go('/'),
               icon: const Icon(Icons.arrow_back, color: Colors.white),
             ),
           ),
