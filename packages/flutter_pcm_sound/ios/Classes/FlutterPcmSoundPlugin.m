@@ -141,22 +141,24 @@ typedef NS_ENUM(NSUInteger, LogLevel) {
             }
 
             NSError *error = nil;
-            [[AVAudioSession sharedInstance] setCategory:category error:&error];
+            if (category == AVAudioSessionCategoryPlayAndRecord) {
+                // VoiceChat + defaultToSpeaker 让通话默认走扬声器，allowBluetooth 支持耳机。
+                AVAudioSessionCategoryOptions options =
+                    AVAudioSessionCategoryOptionDefaultToSpeaker |
+                    AVAudioSessionCategoryOptionAllowBluetooth;
+                [[AVAudioSession sharedInstance] setCategory:category
+                                                        mode:AVAudioSessionModeVoiceChat
+                                                     options:options
+                                                       error:&error];
+            } else {
+                [[AVAudioSession sharedInstance] setCategory:category error:&error];
+            }
             if (error) {
                 NSLog(@"Error setting AVAudioSession category: %@", error);
                 result([FlutterError errorWithCode:@"AVAudioSessionError"
                                         message:@"Error setting AVAudioSession category"
                                         details:[error localizedDescription]]);
                 return;
-            }
-
-            if (category == AVAudioSessionCategoryPlayAndRecord) {
-                [[AVAudioSession sharedInstance] setMode:AVAudioSessionModeVoiceChat error:&error];
-                if (error) {
-                    NSLog(@"Error setting AVAudioSession mode: %@", error);
-                    // non-fatal
-                    error = nil;
-                }
             }
 
             // Match the hardware sample rate to our requested rate so input/output formats align.

@@ -22,6 +22,7 @@ class VoiceCallBloc extends Bloc<VoiceCallEvent, VoiceCallState> {
   Timer? _speakingWatchdog;
   Timer? _playerWatchdog;
   DateTime? _lastAudioDeltaTime;
+  bool _micPausedForAi = false;
 
   VoiceCallBloc(
     this._webSocketService,
@@ -91,6 +92,7 @@ class VoiceCallBloc extends Bloc<VoiceCallEvent, VoiceCallState> {
     log('通话挂断');
     _speakingWatchdog?.cancel();
     _playerWatchdog?.cancel();
+    _micPausedForAi = false;
     await _audioRecorderService.stopRecording();
     await _audioPlayerService.dispose();
     _webSocketService.disconnect();
@@ -111,7 +113,8 @@ class VoiceCallBloc extends Bloc<VoiceCallEvent, VoiceCallState> {
 
     if (newValue) {
       await _audioRecorderService.stopRecording();
-    } else {
+    } else if (state.status != CallStatus.speaking) {
+      // AI 说话时先不打开麦克风，等 AI 说完再自动恢复，避免回音。
       await _audioRecorderService.startRecording(
         onData: (data) => _webSocketService.sendAudio(data),
       );
@@ -206,8 +209,12 @@ class VoiceCallBloc extends Bloc<VoiceCallEvent, VoiceCallState> {
       case 'response.audio.delta':
         _lastAudioDeltaTime = DateTime.now();
         if (state.status != CallStatus.speaking) {
-          log('AI 开始播放语音, VAD threshold 0.6，兼顾打断与回音抑制');
+          log('AI 开始播放语音，暂停麦克风避免回音循环');
           emit(state.copyWith(status: CallStatus.speaking));
+          if (!state.isMuted) {
+            _micPausedForAi = true;
+            await _audioRecorderService.stopRecording();
+          }
           _webSocketService.updateVadThreshold(0.6);
           _startSpeakingWatchdog();
         }
@@ -224,6 +231,13 @@ class VoiceCallBloc extends Bloc<VoiceCallEvent, VoiceCallState> {
         await _audioPlayerService.flushAccumulatedAudio();
         emit(state.copyWith(status: CallStatus.listening));
         _webSocketService.updateVadThreshold(0.3);
+        if (_micPausedForAi && !state.isMuted) {
+          _micPausedForAi = false;
+          log('AI 说完，恢复麦克风');
+          await _audioRecorderService.startRecording(
+            onData: (data) => _webSocketService.sendAudio(data),
+          );
+        }
         break;
 
       case 'error':
@@ -295,6 +309,7 @@ class VoiceCallBloc extends Bloc<VoiceCallEvent, VoiceCallState> {
   Future<void> close() async {
     _speakingWatchdog?.cancel();
     _playerWatchdog?.cancel();
+    _micPausedForAi = false;
     await _messageSubscription?.cancel();
     await _audioSubscription?.cancel();
     await _audioRecorderService.stopRecording();
