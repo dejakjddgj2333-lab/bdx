@@ -15,8 +15,9 @@ class SafeAreaWrapper extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = AppColors.of(context);
     return Container(
-      color: AppColors.bg,
+      color: colors.bg,
       child: SafeArea(
         top: top,
         bottom: bottom,

@@ -3,17 +3,21 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'core/constants/app_theme.dart';
+import 'core/constants/app_theme_mode.dart';
 import 'injection.dart';
 import 'presentation/blocs/agent/agent_bloc.dart';
 import 'presentation/blocs/auth/auth_bloc.dart';
 import 'presentation/blocs/chat_detail/chat_detail_bloc.dart';
 import 'presentation/blocs/chat_list/chat_list_bloc.dart';
+import 'presentation/blocs/theme/theme_cubit.dart';
+import 'presentation/blocs/theme/theme_state.dart';
 import 'presentation/blocs/voice_call/voice_call_bloc.dart';
 import 'presentation/pages/agent/agent_list_page.dart';
 import 'presentation/pages/chat/chat_detail_page.dart';
 import 'presentation/pages/chat/chat_list_page.dart';
 import 'presentation/pages/login/login_page.dart';
 import 'presentation/pages/profile/profile_page.dart';
+import 'presentation/pages/settings/settings_page.dart';
 import 'presentation/pages/voice_call/voice_call_page.dart';
 import 'presentation/widgets/tech_background.dart';
 
@@ -24,20 +28,35 @@ class App extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocProvider(
       create: (_) => getIt<AuthBloc>()..add(const AuthCheckRequested()),
-      child: MaterialApp.router(
-        title: '北斗星AI',
-        debugShowCheckedModeBanner: false,
-        theme: AppTheme.darkTheme.copyWith(
-          platform: TargetPlatform.iOS,
-          pageTransitionsTheme: const PageTransitionsTheme(
-            builders: {
-              TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
-              TargetPlatform.android: CupertinoPageTransitionsBuilder(),
-            },
-          ),
-        ),
-        routerConfig: _router,
-        builder: (context, child) => TechBackground(child: child ?? const SizedBox.shrink()),
+      child: BlocBuilder<ThemeCubit, ThemeState>(
+        bloc: getIt<ThemeCubit>(),
+        builder: (context, themeState) {
+          return MaterialApp.router(
+            title: '北斗星AI',
+            debugShowCheckedModeBanner: false,
+            theme: AppTheme.lightTheme.copyWith(
+              platform: TargetPlatform.iOS,
+              pageTransitionsTheme: const PageTransitionsTheme(
+                builders: {
+                  TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
+                  TargetPlatform.android: CupertinoPageTransitionsBuilder(),
+                },
+              ),
+            ),
+            darkTheme: AppTheme.darkTheme.copyWith(
+              platform: TargetPlatform.iOS,
+              pageTransitionsTheme: const PageTransitionsTheme(
+                builders: {
+                  TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
+                  TargetPlatform.android: CupertinoPageTransitionsBuilder(),
+                },
+              ),
+            ),
+            themeMode: themeState.mode.toThemeMode,
+            routerConfig: _router,
+            builder: (context, child) => TechBackground(child: child ?? const SizedBox.shrink()),
+          );
+        },
       ),
     );
   }
@@ -113,6 +132,13 @@ final GoRouter _router = GoRouter(
       pageBuilder: (context, state) => CupertinoPage(
         key: state.pageKey,
         child: const ProfilePage(),
+      ),
+    ),
+    GoRoute(
+      path: '/settings',
+      pageBuilder: (context, state) => CupertinoPage(
+        key: state.pageKey,
+        child: const SettingsPage(),
       ),
     ),
     GoRoute(

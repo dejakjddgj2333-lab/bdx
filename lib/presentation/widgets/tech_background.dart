@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import '../../core/constants/app_colors.dart';
 
-/// 深色科技风背景装饰
+/// 科技感背景装饰
 ///
-/// 在页面底层绘制渐变光晕与网格线，营造 B18.tech 风格的沉浸感。
+/// 在页面底层绘制渐变光晕与网格线，营造沉浸感。
+/// 已适配浅色/深色主题。
 ///
 /// 性能说明：
 /// - 光晕是几个静态 Container，仅构建一次
@@ -21,19 +22,22 @@ class TechBackground extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = AppColors.of(context);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Stack(
       fit: StackFit.expand,
       children: [
         // 基础渐变背景
         Container(
-          decoration: const BoxDecoration(
+          decoration: BoxDecoration(
             gradient: LinearGradient(
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
               colors: [
-                AppColors.bg,
-                Color(0xFF050818),
-                AppColors.bg,
+                colors.bg,
+                isDark ? const Color(0xFF050818) : const Color(0xFFFFFFFF),
+                colors.bg,
               ],
             ),
           ),
@@ -42,19 +46,19 @@ class TechBackground extends StatelessWidget {
         Positioned(
           top: -140,
           left: -100,
-          child: _glow(AppColors.primary.withOpacity(0.18), 320),
+          child: _glow(AppColors.primary.withOpacity(isDark ? 0.18 : 0.10), 320),
         ),
         // 底部青色光晕
         Positioned(
           bottom: -180,
           right: -120,
-          child: _glow(AppColors.success.withOpacity(0.12), 360),
+          child: _glow(AppColors.success.withOpacity(isDark ? 0.12 : 0.08), 360),
         ),
         if (showGrid)
           Opacity(
-            opacity: 0.03,
+            opacity: isDark ? 0.03 : 0.04,
             child: CustomPaint(
-              painter: _GridPainter(),
+              painter: _GridPainter(isDark: isDark),
               size: Size.infinite,
             ),
           ),
@@ -79,10 +83,14 @@ class TechBackground extends StatelessWidget {
 }
 
 class _GridPainter extends CustomPainter {
+  final bool isDark;
+
+  const _GridPainter({required this.isDark});
+
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = Colors.white
+      ..color = isDark ? Colors.white : Colors.black
       ..strokeWidth = 0.5;
 
     const step = 56.0;
@@ -95,5 +103,5 @@ class _GridPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter) => false;
+  bool shouldRepaint(covariant _GridPainter oldDelegate) => oldDelegate.isDark != isDark;
 }

@@ -98,8 +98,10 @@ class _VoiceCallPageState extends State<VoiceCallPage>
 
   @override
   Widget build(BuildContext context) {
+    final colors = AppColors.of(context);
+
     return Scaffold(
-      backgroundColor: AppColors.bg,
+      backgroundColor: colors.bg,
       body: BlocConsumer<VoiceCallBloc, VoiceCallState>(
         listener: (context, state) {
           if (state.status == CallStatus.idle) {
@@ -117,7 +119,7 @@ class _VoiceCallPageState extends State<VoiceCallPage>
                   alignment: Alignment.centerLeft,
                   child: IconButton(
                     onPressed: () => _goBack(context),
-                    icon: const Icon(Icons.arrow_back, color: Colors.white),
+                    icon: Icon(Icons.arrow_back, color: colors.text),
                   ),
                 ),
                 const Spacer(),
@@ -125,8 +127,8 @@ class _VoiceCallPageState extends State<VoiceCallPage>
                 const SizedBox(height: 32),
                 Text(
                   state.statusText,
-                  style: const TextStyle(
-                    color: Colors.white,
+                  style: TextStyle(
+                    color: colors.text,
                     fontSize: 22,
                     fontWeight: FontWeight.w600,
                   ),
@@ -134,8 +136,8 @@ class _VoiceCallPageState extends State<VoiceCallPage>
                 const SizedBox(height: 12),
                 Text(
                   state.formattedDuration,
-                  style: const TextStyle(
-                    color: AppColors.textSecondary,
+                  style: TextStyle(
+                    color: colors.textSecondary,
                     fontSize: 16,
                   ),
                 ),
@@ -273,6 +275,8 @@ class _VoiceCallPageState extends State<VoiceCallPage>
     Color? color,
     bool isActive = false,
   }) {
+    final colors = AppColors.of(context);
+
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -284,9 +288,9 @@ class _VoiceCallPageState extends State<VoiceCallPage>
             decoration: BoxDecoration(
               color:
                   color ??
-                  (isActive ? AppColors.primary : AppColors.glassWhite),
+                  (isActive ? AppColors.primary : colors.glassWhite),
               shape: BoxShape.circle,
-              border: Border.all(color: AppColors.borderSubtle),
+              border: Border.all(color: colors.borderSubtle),
             ),
             child: Icon(icon, color: Colors.white, size: 28),
           ),
@@ -294,7 +298,7 @@ class _VoiceCallPageState extends State<VoiceCallPage>
         const SizedBox(height: 8),
         Text(
           label,
-          style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
+          style: TextStyle(color: colors.textSecondary, fontSize: 12),
         ),
       ],
     );
@@ -318,6 +322,8 @@ class _VoiceCallPageState extends State<VoiceCallPage>
   }
 
   Widget _buildPermissionDenied() {
+    final colors = AppColors.of(context);
+
     return SizedBox.expand(
       child: Stack(
         children: [
@@ -327,12 +333,12 @@ class _VoiceCallPageState extends State<VoiceCallPage>
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(Icons.mic_off, color: AppColors.textSecondary, size: 64),
+                  Icon(Icons.mic_off, color: colors.textSecondary, size: 64),
                   const SizedBox(height: 16),
-                  const Text(
+                  Text(
                     '需要麦克风权限才能进行语音通话',
                     textAlign: TextAlign.center,
-                    style: TextStyle(color: Colors.white, fontSize: 16, height: 1.5),
+                    style: TextStyle(color: colors.text, fontSize: 16, height: 1.5),
                   ),
                   const SizedBox(height: 8),
                   FutureBuilder<PermissionStatus>(
@@ -352,8 +358,8 @@ class _VoiceCallPageState extends State<VoiceCallPage>
                                   ? '权限已被永久拒绝，请前往系统设置手动开启'
                                   : '请点击下方按钮授权麦克风权限',
                               textAlign: TextAlign.center,
-                              style: const TextStyle(
-                                color: AppColors.textSecondary,
+                              style: TextStyle(
+                                color: colors.textSecondary,
                                 fontSize: 13,
                                 height: 1.4,
                               ),
@@ -394,9 +400,9 @@ class _VoiceCallPageState extends State<VoiceCallPage>
                           const SizedBox(height: 12),
                           TextButton(
                             onPressed: () => _checkPermissionAndStart(),
-                            child: const Text(
+                            child: Text(
                               '已开启，重新检测',
-                              style: TextStyle(color: AppColors.textSecondary),
+                              style: TextStyle(color: colors.textSecondary),
                             ),
                           ),
                         ],
@@ -412,7 +418,7 @@ class _VoiceCallPageState extends State<VoiceCallPage>
               alignment: Alignment.topLeft,
               child: IconButton(
                 onPressed: () => _goBack(context),
-                icon: const Icon(Icons.arrow_back, color: Colors.white),
+                icon: Icon(Icons.arrow_back, color: colors.text),
               ),
             ),
           ),

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -74,8 +75,10 @@ class _ChatDetailPageState extends State<ChatDetailPage>
 
   @override
   Widget build(BuildContext context) {
+    final colors = AppColors.of(context);
+
     return Scaffold(
-      backgroundColor: AppColors.bg,
+      backgroundColor: colors.bg,
       resizeToAvoidBottomInset: true,
       body: BlocConsumer<ChatDetailBloc, ChatDetailState>(
         listener: (context, state) {
@@ -103,13 +106,13 @@ class _ChatDetailPageState extends State<ChatDetailPage>
                 title: '',
                 leading: IconButton(
                   onPressed: () => context.canPop() ? context.pop() : context.go('/'),
-                  icon: const Icon(Icons.arrow_back, color: Colors.white),
+                  icon: Icon(Icons.arrow_back, color: colors.text),
                 ),
                 actions: [
                   _buildModelChip(currentModelName),
                   IconButton(
                     onPressed: () => _showMoreActions(context),
-                    icon: const Icon(Icons.more_vert, color: Colors.white),
+                    icon: Icon(Icons.more_vert, color: colors.text),
                   ),
                 ],
               ),
@@ -123,14 +126,16 @@ class _ChatDetailPageState extends State<ChatDetailPage>
   }
 
   Widget _buildModelChip(String name) {
+    final colors = AppColors.of(context);
+
     return GestureDetector(
       onTap: () => _showModelPicker(context),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
-          color: AppColors.glassWhite,
+          color: colors.glassWhite,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.borderSubtle),
+          border: Border.all(color: colors.borderSubtle),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -146,9 +151,9 @@ class _ChatDetailPageState extends State<ChatDetailPage>
             const SizedBox(width: 6),
             Text(
               name,
-              style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w500),
+              style: TextStyle(color: colors.text, fontSize: 13, fontWeight: FontWeight.w500),
             ),
-            const Icon(Icons.arrow_drop_down, color: AppColors.textTertiary, size: 18),
+            Icon(Icons.arrow_drop_down, color: colors.textTertiary, size: 18),
           ],
         ),
       ),
@@ -184,24 +189,26 @@ class _ChatDetailPageState extends State<ChatDetailPage>
   }
 
   Widget _buildSkeleton() {
+    final colors = AppColors.of(context);
+
     return Shimmer.fromColors(
-      baseColor: AppColors.glassWhite,
-      highlightColor: AppColors.borderSubtle,
+      baseColor: colors.glassWhite,
+      highlightColor: colors.borderSubtle,
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
             Row(
               children: [
-                Container(width: 36, height: 36, decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle)),
+                Container(width: 36, height: 36, decoration: BoxDecoration(color: colors.text, shape: BoxShape.circle)),
                 const SizedBox(width: 12),
-                Container(width: 200, height: 60, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12))),
+                Container(width: 200, height: 60, decoration: BoxDecoration(color: colors.text, borderRadius: BorderRadius.circular(12))),
               ],
             ),
             const SizedBox(height: 16),
             Align(
               alignment: Alignment.centerRight,
-              child: Container(width: 160, height: 40, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12))),
+              child: Container(width: 160, height: 40, decoration: BoxDecoration(color: colors.text, borderRadius: BorderRadius.circular(12))),
             ),
           ],
         ),
@@ -210,6 +217,8 @@ class _ChatDetailPageState extends State<ChatDetailPage>
   }
 
   Widget _buildWelcome(ChatDetailState state) {
+    final colors = AppColors.of(context);
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
       child: Column(
@@ -242,19 +251,19 @@ class _ChatDetailPageState extends State<ChatDetailPage>
             ),
           ),
           const SizedBox(height: 24),
-          const Text(
+          Text(
             '嗨，今天要和北斗星AI一起做什么？',
             style: TextStyle(
-              color: Colors.white,
+              color: colors.text,
               fontSize: 24,
               fontWeight: FontWeight.w600,
               height: 1.3,
             ),
           ),
           const SizedBox(height: 8),
-          const Text(
+          Text(
             '选一个话题开始吧',
-            style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
+            style: TextStyle(color: colors.textSecondary, fontSize: 14),
           ),
           const SizedBox(height: 28),
           ...state.suggestions.map((s) => _buildSuggestionItem(s)),
@@ -264,6 +273,7 @@ class _ChatDetailPageState extends State<ChatDetailPage>
   }
 
   Widget _buildSuggestionItem(Map<String, dynamic> suggestion) {
+    final colors = AppColors.of(context);
     final title = suggestion['title']?.toString() ?? '';
     final prompt = suggestion['prompt']?.toString() ?? '';
     return GestureDetector(
@@ -274,19 +284,19 @@ class _ChatDetailPageState extends State<ChatDetailPage>
         margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
         decoration: BoxDecoration(
-          color: AppColors.glassWhite,
+          color: colors.glassWhite,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: AppColors.borderSubtle),
+          border: Border.all(color: colors.borderSubtle),
         ),
         child: Row(
           children: [
             Expanded(
               child: Text(
                 title,
-                style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w500),
+                style: TextStyle(color: colors.text, fontSize: 14, fontWeight: FontWeight.w500),
               ),
             ),
-            const Icon(Icons.arrow_forward_ios, color: AppColors.textTertiary, size: 14),
+            Icon(Icons.arrow_forward_ios, color: colors.textTertiary, size: 14),
           ],
         ),
       ),
@@ -294,6 +304,8 @@ class _ChatDetailPageState extends State<ChatDetailPage>
   }
 
   Widget _buildLoadingBubble() {
+    final colors = AppColors.of(context);
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
       child: Row(
@@ -311,7 +323,7 @@ class _ChatDetailPageState extends State<ChatDetailPage>
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: AppColors.glassWhite,
+              color: colors.glassWhite,
               borderRadius: BorderRadius.circular(16),
             ),
             child: Row(
@@ -349,6 +361,8 @@ class _ChatDetailPageState extends State<ChatDetailPage>
   }
 
   Widget _buildInputArea(ChatDetailState state, bool supportsVision) {
+    final colors = AppColors.of(context);
+
     return Container(
       padding: EdgeInsets.only(
         left: 16,
@@ -358,8 +372,8 @@ class _ChatDetailPageState extends State<ChatDetailPage>
         // 这里只需补偿底部安全区 + 固定间距，避免双重计算。
         bottom: MediaQuery.of(context).padding.bottom + 12,
       ),
-      decoration: const BoxDecoration(
-        color: AppColors.bgElevated,
+      decoration: BoxDecoration(
+        color: colors.bgElevated,
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -378,9 +392,9 @@ class _ChatDetailPageState extends State<ChatDetailPage>
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8),
             decoration: BoxDecoration(
-              color: AppColors.glassWhite,
+              color: colors.glassWhite,
               borderRadius: BorderRadius.circular(24),
-              border: Border.all(color: AppColors.borderSubtle),
+              border: Border.all(color: colors.borderSubtle),
             ),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.end,
@@ -388,7 +402,7 @@ class _ChatDetailPageState extends State<ChatDetailPage>
                 if (supportsVision)
                   IconButton(
                     onPressed: state.isSending ? null : _pickImage,
-                    icon: const Icon(Icons.photo, color: AppColors.textSecondary),
+                    icon: Icon(Icons.photo, color: colors.textSecondary),
                   ),
                 Expanded(
                   child: TextField(
@@ -405,7 +419,7 @@ class _ChatDetailPageState extends State<ChatDetailPage>
                       enabledBorder: InputBorder.none,
                       focusedBorder: InputBorder.none,
                     ),
-                    style: const TextStyle(color: Colors.white),
+                    style: TextStyle(color: colors.text),
                   ),
                 ),
                 GestureDetector(
@@ -416,7 +430,7 @@ class _ChatDetailPageState extends State<ChatDetailPage>
                     margin: const EdgeInsets.all(4),
                     decoration: BoxDecoration(
                       gradient: state.isSending ? null : AppColors.primaryGradient,
-                      color: state.isSending ? AppColors.buttonOverlay : null,
+                      color: state.isSending ? colors.buttonOverlay : null,
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(Icons.arrow_upward, color: Colors.white, size: 20),
@@ -426,9 +440,9 @@ class _ChatDetailPageState extends State<ChatDetailPage>
             ),
           ),
           const SizedBox(height: 6),
-          const Text(
+          Text(
             '内容由 AI 生成',
-            style: TextStyle(color: AppColors.textTertiary, fontSize: 11),
+            style: TextStyle(color: colors.textTertiary, fontSize: 11),
           ),
         ],
       ),
@@ -498,6 +512,7 @@ class _ChatDetailPageState extends State<ChatDetailPage>
   }
 
   void _showModelPicker(BuildContext context) {
+    final colors = AppColors.of(context);
     final bloc = context.read<ChatDetailBloc>();
     showModalBottomSheet(
       context: context,
@@ -510,9 +525,9 @@ class _ChatDetailPageState extends State<ChatDetailPage>
             if (state.error != null) {
               return Container(
                 padding: const EdgeInsets.all(32),
-                decoration: const BoxDecoration(
-                  color: AppColors.bgElevated,
-                  borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+                decoration: BoxDecoration(
+                  color: colors.bgElevated,
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
                 ),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -534,16 +549,16 @@ class _ChatDetailPageState extends State<ChatDetailPage>
             if (state.models.isEmpty) {
               return Container(
                 padding: const EdgeInsets.all(32),
-                decoration: const BoxDecoration(
-                  color: AppColors.bgElevated,
-                  borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+                decoration: BoxDecoration(
+                  color: colors.bgElevated,
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
                 ),
-                child: const Column(
+                child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    CircularProgressIndicator(color: AppColors.primary),
-                    SizedBox(height: 16),
-                    Text('加载模型中...', style: TextStyle(color: Colors.white)),
+                    const CircularProgressIndicator(color: AppColors.primary),
+                    const SizedBox(height: 16),
+                    Text('加载模型中...', style: TextStyle(color: colors.text)),
                   ],
                 ),
               );
@@ -560,9 +575,10 @@ class _ChatDetailPageState extends State<ChatDetailPage>
   }
 
   void _showMoreActions(BuildContext context) {
+    final colors = AppColors.of(context);
     showModalBottomSheet(
       context: context,
-      backgroundColor: AppColors.bgElevated,
+      backgroundColor: colors.bgElevated,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -575,21 +591,21 @@ class _ChatDetailPageState extends State<ChatDetailPage>
               height: 4,
               margin: const EdgeInsets.symmetric(vertical: 12),
               decoration: BoxDecoration(
-                color: AppColors.borderSubtle,
+                color: colors.borderSubtle,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
             ListTile(
-              leading: const Icon(Icons.cleaning_services, color: Colors.white),
-              title: const Text('清空对话', style: TextStyle(color: Colors.white)),
+              leading: Icon(Icons.cleaning_services, color: colors.text),
+              title: Text('清空对话', style: TextStyle(color: colors.text)),
               onTap: () {
                 context.read<ChatDetailBloc>().add(const ChatDetailCleared());
                 Navigator.pop(context);
               },
             ),
             ListTile(
-              leading: const Icon(Icons.add_circle_outline, color: Colors.white),
-              title: const Text('新建对话', style: TextStyle(color: Colors.white)),
+              leading: Icon(Icons.add_circle_outline, color: colors.text),
+              title: Text('新建对话', style: TextStyle(color: colors.text)),
               onTap: () {
                 context.read<ChatDetailBloc>().add(const ChatDetailCleared());
                 Navigator.pop(context);

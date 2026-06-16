@@ -31,8 +31,10 @@ class _ChatListPageState extends State<ChatListPage> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = AppColors.of(context);
+
     return Scaffold(
-      backgroundColor: AppColors.bg,
+      backgroundColor: colors.bg,
       drawer: const SideMenu(),
       body: BlocConsumer<AuthBloc, AuthState>(
         listener: (context, authState) {
@@ -49,17 +51,17 @@ class _ChatListPageState extends State<ChatListPage> {
                 leading: Builder(
                   builder: (context) => IconButton(
                     onPressed: () => Scaffold.of(context).openDrawer(),
-                    icon: const Icon(Icons.menu, color: Colors.white),
+                    icon: Icon(Icons.menu, color: colors.text),
                   ),
                 ),
                 actions: [
                   IconButton(
                     onPressed: () => setState(() => _showSearch = !_showSearch),
-                    icon: Icon(_showSearch ? Icons.close : Icons.search, color: Colors.white),
+                    icon: Icon(_showSearch ? Icons.close : Icons.search, color: colors.text),
                   ),
                   IconButton(
                     onPressed: () => context.push('/chat/detail'),
-                    icon: const Icon(Icons.add_circle_outline, color: Colors.white),
+                    icon: Icon(Icons.add_circle_outline, color: colors.text),
                   ),
                 ],
               ),
@@ -84,6 +86,8 @@ class _ChatListPageState extends State<ChatListPage> {
   }
 
   Widget _buildAuthenticatedBody(BuildContext context) {
+    final colors = AppColors.of(context);
+
     return CustomScrollView(
       slivers: [
         SliverToBoxAdapter(child: _buildQuickActions(context)),
@@ -108,10 +112,10 @@ class _ChatListPageState extends State<ChatListPage> {
                   ),
                 ),
                 const SizedBox(width: 8),
-                const Text(
+                Text(
                   '最近对话',
                   style: TextStyle(
-                    color: Colors.white,
+                    color: colors.text,
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
                   ),
@@ -126,6 +130,8 @@ class _ChatListPageState extends State<ChatListPage> {
   }
 
   Widget _buildLoginPrompt(BuildContext context) {
+    final colors = AppColors.of(context);
+
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
@@ -136,25 +142,25 @@ class _ChatListPageState extends State<ChatListPage> {
               width: 80,
               height: 80,
               decoration: BoxDecoration(
-                color: AppColors.glassWhite,
+                color: colors.glassWhite,
                 borderRadius: BorderRadius.circular(24),
               ),
-              child: const Icon(Icons.lock_outline, color: AppColors.textTertiary, size: 36),
+              child: Icon(Icons.lock_outline, color: colors.textTertiary, size: 36),
             ),
             const SizedBox(height: 20),
-            const Text(
+            Text(
               '登录后查看对话记录',
               style: TextStyle(
-                color: Colors.white,
+                color: colors.text,
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
               ),
             ),
             const SizedBox(height: 8),
-            const Text(
+            Text(
               '立即登录，开启 AI 对话',
               textAlign: TextAlign.center,
-              style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
+              style: TextStyle(color: colors.textSecondary, fontSize: 14),
             ),
             const SizedBox(height: 28),
             GestureDetector(
@@ -189,20 +195,22 @@ class _ChatListPageState extends State<ChatListPage> {
   }
 
   Widget _buildSearchField() {
+    final colors = AppColors.of(context);
+
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.glassWhite,
+        color: colors.glassWhite,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.borderSubtle),
+        border: Border.all(color: colors.borderSubtle),
       ),
       child: TextField(
         controller: _searchController,
         onChanged: (value) => context.read<ChatListBloc>().add(ChatListSearchChanged(value)),
-        style: const TextStyle(color: Colors.white, fontSize: 14),
+        style: TextStyle(color: colors.text, fontSize: 14),
         decoration: InputDecoration(
           hintText: '搜索会话',
-          hintStyle: const TextStyle(color: AppColors.textTertiary),
-          prefixIcon: const Icon(Icons.search, color: AppColors.textTertiary, size: 20),
+          hintStyle: TextStyle(color: colors.textTertiary),
+          prefixIcon: Icon(Icons.search, color: colors.textTertiary, size: 20),
           suffixIcon: _searchController.text.isNotEmpty
               ? IconButton(
                   onPressed: () {
@@ -210,7 +218,7 @@ class _ChatListPageState extends State<ChatListPage> {
                     context.read<ChatListBloc>().add(const ChatListSearchChanged(''));
                     setState(() {});
                   },
-                  icon: const Icon(Icons.clear, color: AppColors.textTertiary, size: 20),
+                  icon: Icon(Icons.clear, color: colors.textTertiary, size: 20),
                 )
               : null,
           filled: false,
@@ -291,6 +299,8 @@ class _ChatListPageState extends State<ChatListPage> {
   Widget _buildConversationList() {
     return BlocBuilder<ChatListBloc, ChatListState>(
       builder: (context, state) {
+        final colors = AppColors.of(context);
+
         if (state is ChatListLoading) {
           return const SliverFillRemaining(
             child: Center(child: LoadingIndicator()),
@@ -299,7 +309,7 @@ class _ChatListPageState extends State<ChatListPage> {
         if (state is ChatListError) {
           return SliverFillRemaining(
             child: Center(
-              child: Text(state.message, style: const TextStyle(color: AppColors.textSecondary)),
+              child: Text(state.message, style: TextStyle(color: colors.textSecondary)),
             ),
           );
         }
@@ -327,8 +337,8 @@ class _ChatListPageState extends State<ChatListPage> {
                         padding: const EdgeInsets.only(top: 16, bottom: 8),
                         child: Text(
                           entry.key,
-                          style: const TextStyle(
-                            color: AppColors.textTertiary,
+                          style: TextStyle(
+                            color: colors.textTertiary,
                             fontSize: 12,
                             fontWeight: FontWeight.w500,
                           ),
@@ -349,6 +359,8 @@ class _ChatListPageState extends State<ChatListPage> {
   }
 
   Widget _buildEmptyState() {
+    final colors = AppColors.of(context);
+
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -357,20 +369,20 @@ class _ChatListPageState extends State<ChatListPage> {
             width: 80,
             height: 80,
             decoration: BoxDecoration(
-              color: AppColors.glassWhite,
+              color: colors.glassWhite,
               borderRadius: BorderRadius.circular(24),
             ),
-            child: const Icon(Icons.chat_bubble_outline, color: AppColors.textTertiary, size: 36),
+            child: Icon(Icons.chat_bubble_outline, color: colors.textTertiary, size: 36),
           ),
           const SizedBox(height: 16),
-          const Text(
+          Text(
             '暂无会话',
-            style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600),
+            style: TextStyle(color: colors.text, fontSize: 16, fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 8),
-          const Text(
+          Text(
             '点击右上角新建对话',
-            style: TextStyle(color: AppColors.textTertiary, fontSize: 13),
+            style: TextStyle(color: colors.textTertiary, fontSize: 13),
           ),
         ],
       ),
@@ -387,6 +399,7 @@ class _ChatListPageState extends State<ChatListPage> {
   }
 
   Widget _buildConversationItem(BuildContext context, Conversation conversation) {
+    final colors = AppColors.of(context);
     final bloc = context.read<ChatListBloc>();
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
@@ -416,9 +429,9 @@ class _ChatListPageState extends State<ChatListPage> {
           child: Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: AppColors.glassWhite,
+              color: colors.glassWhite,
               borderRadius: BorderRadius.circular(18),
-              border: Border.all(color: AppColors.borderSubtle),
+              border: Border.all(color: colors.borderSubtle),
             ),
             child: Row(
               children: [
@@ -438,8 +451,8 @@ class _ChatListPageState extends State<ChatListPage> {
                     children: [
                       Text(
                         conversation.title ?? '新对话',
-                        style: const TextStyle(
-                          color: Colors.white,
+                        style: TextStyle(
+                          color: colors.text,
                           fontSize: 15,
                           fontWeight: FontWeight.w600,
                         ),
@@ -449,8 +462,8 @@ class _ChatListPageState extends State<ChatListPage> {
                       const SizedBox(height: 4),
                       Text(
                         conversation.model ?? '默认模型',
-                        style: const TextStyle(
-                          color: AppColors.textTertiary,
+                        style: TextStyle(
+                          color: colors.textTertiary,
                           fontSize: 12,
                         ),
                       ),
@@ -459,7 +472,7 @@ class _ChatListPageState extends State<ChatListPage> {
                 ),
                 Text(
                   app_date_utils.DateUtils.formatTime(conversation.updatedAt ?? conversation.createdAt ?? DateTime.now()),
-                  style: const TextStyle(color: AppColors.textTertiary, fontSize: 11),
+                  style: TextStyle(color: colors.textTertiary, fontSize: 11),
                 ),
               ],
             ),
@@ -470,17 +483,18 @@ class _ChatListPageState extends State<ChatListPage> {
   }
 
   void _showRenameDialog(BuildContext context, Conversation conversation, ChatListBloc bloc) {
+    final colors = AppColors.of(context);
     final controller = TextEditingController(text: conversation.title);
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: AppColors.bgElevated,
+        backgroundColor: colors.bgElevated,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('重命名会话', style: TextStyle(color: Colors.white)),
+        title: Text('重命名会话', style: TextStyle(color: colors.text)),
         content: TextField(
           controller: controller,
           decoration: const InputDecoration(hintText: '会话名称'),
-          style: const TextStyle(color: Colors.white),
+          style: TextStyle(color: colors.text),
         ),
         actions: [
           TextButton(
@@ -500,15 +514,16 @@ class _ChatListPageState extends State<ChatListPage> {
   }
 
   void _showDeleteDialog(BuildContext context, Conversation conversation, ChatListBloc bloc) {
+    final colors = AppColors.of(context);
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: AppColors.bgElevated,
+        backgroundColor: colors.bgElevated,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('删除会话', style: TextStyle(color: Colors.white)),
-        content: const Text(
+        title: Text('删除会话', style: TextStyle(color: colors.text)),
+        content: Text(
           '确定删除该会话吗？删除后不可恢复。',
-          style: TextStyle(color: AppColors.textSecondary),
+          style: TextStyle(color: colors.textSecondary),
         ),
         actions: [
           TextButton(

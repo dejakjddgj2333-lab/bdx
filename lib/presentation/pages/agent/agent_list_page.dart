@@ -41,15 +41,17 @@ class _AgentListPageState extends State<AgentListPage> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = AppColors.of(context);
+
     return Scaffold(
-      backgroundColor: AppColors.bg,
+      backgroundColor: colors.bg,
       body: Column(
         children: [
           AppHeader(
             title: '智能体',
             leading: IconButton(
               onPressed: () => context.canPop() ? context.pop() : context.go('/'),
-              icon: const Icon(Icons.arrow_back, color: Colors.white),
+              icon: Icon(Icons.arrow_back, color: colors.text),
             ),
           ),
           Padding(
@@ -64,20 +66,22 @@ class _AgentListPageState extends State<AgentListPage> {
   }
 
   Widget _buildSearchField() {
+    final colors = AppColors.of(context);
+
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.glassWhite,
+        color: colors.glassWhite,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.borderSubtle),
+        border: Border.all(color: colors.borderSubtle),
       ),
       child: TextField(
         controller: _searchController,
         onChanged: (value) => context.read<AgentBloc>().add(AgentSearchChanged(value)),
-        style: const TextStyle(color: Colors.white, fontSize: 14),
+        style: TextStyle(color: colors.text, fontSize: 14),
         decoration: InputDecoration(
           hintText: '搜索智能体',
-          hintStyle: const TextStyle(color: AppColors.textTertiary),
-          prefixIcon: const Icon(Icons.search, color: AppColors.textTertiary, size: 20),
+          hintStyle: TextStyle(color: colors.textTertiary),
+          prefixIcon: Icon(Icons.search, color: colors.textTertiary, size: 20),
           suffixIcon: _searchController.text.isNotEmpty
               ? IconButton(
                   onPressed: () {
@@ -85,7 +89,7 @@ class _AgentListPageState extends State<AgentListPage> {
                     context.read<AgentBloc>().add(const AgentSearchChanged(''));
                     setState(() {});
                   },
-                  icon: const Icon(Icons.clear, color: AppColors.textTertiary, size: 20),
+                  icon: Icon(Icons.clear, color: colors.textTertiary, size: 20),
                 )
               : null,
           filled: false,
@@ -99,6 +103,8 @@ class _AgentListPageState extends State<AgentListPage> {
   Widget _buildCategoryList() {
     return BlocBuilder<AgentBloc, AgentState>(
       builder: (context, state) {
+        final colors = AppColors.of(context);
+
         if (state is AgentLoadedSuccess) {
           return SizedBox(
             height: 48,
@@ -118,10 +124,10 @@ class _AgentListPageState extends State<AgentListPage> {
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     decoration: BoxDecoration(
                       gradient: isSelected ? AppColors.primaryGradient : null,
-                      color: isSelected ? null : AppColors.glassWhite,
+                      color: isSelected ? null : colors.glassWhite,
                       borderRadius: BorderRadius.circular(20),
                       border: Border.all(
-                        color: isSelected ? AppColors.border : AppColors.borderSubtle,
+                        color: isSelected ? colors.border : colors.borderSubtle,
                       ),
                       boxShadow: isSelected
                           ? [
@@ -136,7 +142,7 @@ class _AgentListPageState extends State<AgentListPage> {
                       child: Text(
                         category,
                         style: TextStyle(
-                          color: isSelected ? Colors.white : AppColors.textSecondary,
+                          color: isSelected ? Colors.white : colors.textSecondary,
                           fontSize: 13,
                           fontWeight: FontWeight.w500,
                         ),
@@ -156,12 +162,14 @@ class _AgentListPageState extends State<AgentListPage> {
   Widget _buildAgentList() {
     return BlocBuilder<AgentBloc, AgentState>(
       builder: (context, state) {
+        final colors = AppColors.of(context);
+
         if (state is AgentLoading) {
           return const Center(child: LoadingIndicator());
         }
         if (state is AgentError) {
           return Center(
-            child: Text(state.message, style: const TextStyle(color: AppColors.textSecondary)),
+            child: Text(state.message, style: TextStyle(color: colors.textSecondary)),
           );
         }
         if (state is AgentLoadedSuccess) {
@@ -192,6 +200,8 @@ class _AgentListPageState extends State<AgentListPage> {
   }
 
   Widget _buildEmptyState() {
+    final colors = AppColors.of(context);
+
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -200,15 +210,15 @@ class _AgentListPageState extends State<AgentListPage> {
             width: 80,
             height: 80,
             decoration: BoxDecoration(
-              color: AppColors.glassWhite,
+              color: colors.glassWhite,
               borderRadius: BorderRadius.circular(24),
             ),
-            child: const Icon(Icons.smart_toy_outlined, color: AppColors.textTertiary, size: 36),
+            child: Icon(Icons.smart_toy_outlined, color: colors.textTertiary, size: 36),
           ),
           const SizedBox(height: 16),
-          const Text(
+          Text(
             '暂无智能体',
-            style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600),
+            style: TextStyle(color: colors.text, fontSize: 16, fontWeight: FontWeight.w600),
           ),
         ],
       ),
@@ -216,15 +226,17 @@ class _AgentListPageState extends State<AgentListPage> {
   }
 
   Widget _buildAgentCard(Agent agent) {
+    final colors = AppColors.of(context);
+
     return GestureDetector(
       onTap: () => context.push('/chat/detail?agentId=${agent.id}'),
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: AppColors.glassWhite,
+          color: colors.glassWhite,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: AppColors.borderSubtle),
+          border: Border.all(color: colors.borderSubtle),
         ),
         child: Row(
           children: [
@@ -255,8 +267,8 @@ class _AgentListPageState extends State<AgentListPage> {
                 children: [
                   Text(
                     agent.name ?? '未命名',
-                    style: const TextStyle(
-                      color: Colors.white,
+                    style: TextStyle(
+                      color: colors.text,
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
                     ),
@@ -269,14 +281,14 @@ class _AgentListPageState extends State<AgentListPage> {
                   const SizedBox(height: 4),
                   Text(
                     agent.description ?? '',
-                    style: const TextStyle(color: AppColors.textSecondary, fontSize: 13),
+                    style: TextStyle(color: colors.textSecondary, fontSize: 13),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
                 ],
               ),
             ),
-            const Icon(Icons.chevron_right, color: AppColors.textTertiary),
+            Icon(Icons.chevron_right, color: colors.textTertiary),
           ],
         ),
       ),

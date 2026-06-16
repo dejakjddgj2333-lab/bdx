@@ -73,10 +73,11 @@ class _LoginPageState extends State<LoginPage>
   @override
   Widget build(BuildContext context) {
     final bottomPadding = MediaQuery.of(context).padding.bottom;
+    final colors = AppColors.of(context);
 
     return Scaffold(
       resizeToAvoidBottomInset: true,
-      backgroundColor: AppColors.bg,
+      backgroundColor: colors.bg,
       body: BlocListener<AuthBloc, AuthState>(
         listener: (context, state) {
           if (state is AuthAuthenticated) {
@@ -101,22 +102,22 @@ class _LoginPageState extends State<LoginPage>
                   children: [
                     _buildLogo(),
                     const SizedBox(height: 28),
-                    const Text(
+                    Text(
                       '北斗星AI',
                       textAlign: TextAlign.center,
                       style: TextStyle(
-                        color: Colors.white,
+                        color: colors.text,
                         fontSize: 30,
                         fontWeight: FontWeight.bold,
                         letterSpacing: 1.2,
                       ),
                     ),
                     const SizedBox(height: 8),
-                    const Text(
+                    Text(
                       '探索 AI 的无限可能',
                       textAlign: TextAlign.center,
                       style: TextStyle(
-                        color: AppColors.textSecondary,
+                        color: colors.textSecondary,
                         fontSize: 14,
                         letterSpacing: 0.5,
                       ),
@@ -197,13 +198,15 @@ class _LoginPageState extends State<LoginPage>
   }
 
   Widget _buildTabBar() {
+    final colors = AppColors.of(context);
+
     return Container(
       height: 52,
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
-        color: AppColors.glassWhite,
+        color: colors.glassWhite,
         borderRadius: BorderRadius.circular(28),
-        border: Border.all(color: AppColors.borderSubtle),
+        border: Border.all(color: colors.borderSubtle),
       ),
       child: TabBar(
         controller: _tabController,
@@ -220,7 +223,7 @@ class _LoginPageState extends State<LoginPage>
           ],
         ),
         labelColor: Colors.white,
-        unselectedLabelColor: AppColors.textSecondary,
+        unselectedLabelColor: colors.textSecondary,
         dividerColor: Colors.transparent,
         labelStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
         unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w500, fontSize: 15),
@@ -238,19 +241,21 @@ class _LoginPageState extends State<LoginPage>
     required IconData icon,
     bool obscureText = false,
   }) {
+    final colors = AppColors.of(context);
+
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.glassWhite,
+        color: colors.glassWhite,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: AppColors.borderSubtle),
+        border: Border.all(color: colors.borderSubtle),
       ),
       child: TextField(
         controller: controller,
         obscureText: obscureText,
-        style: const TextStyle(color: Colors.white, fontSize: 15),
+        style: TextStyle(color: colors.text, fontSize: 15),
         decoration: InputDecoration(
           hintText: hint,
-          prefixIcon: Icon(icon, color: AppColors.textTertiary, size: 20),
+          prefixIcon: Icon(icon, color: colors.textTertiary, size: 20),
           filled: false,
           contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
           border: InputBorder.none,
@@ -272,7 +277,7 @@ class _LoginPageState extends State<LoginPage>
             padding: const EdgeInsets.symmetric(vertical: 16),
             decoration: BoxDecoration(
               gradient: isLoading ? null : AppColors.primaryGradient,
-              color: isLoading ? AppColors.buttonOverlay : null,
+              color: isLoading ? AppColors.of(context).buttonOverlay : null,
               borderRadius: BorderRadius.circular(28),
               boxShadow: [
                 BoxShadow(

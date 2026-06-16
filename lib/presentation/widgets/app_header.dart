@@ -18,13 +18,14 @@ class AppHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final statusBarHeight = MediaQuery.of(context).padding.top;
+    final colors = AppColors.of(context);
 
     return Container(
       padding: EdgeInsets.only(top: statusBarHeight + 8, left: 8, right: 8, bottom: 10),
       decoration: BoxDecoration(
-        color: AppColors.bg.withOpacity(0.92),
+        color: colors.bg.withOpacity(0.92),
         border: showBorder
-            ? Border(bottom: BorderSide(color: AppColors.border.withOpacity(0.5)))
+            ? Border(bottom: BorderSide(color: colors.border.withOpacity(0.5)))
             : null,
       ),
       child: Row(
@@ -37,8 +38,8 @@ class AppHeader extends StatelessWidget {
             child: Text(
               title,
               textAlign: TextAlign.center,
-              style: const TextStyle(
-                color: Colors.white,
+              style: TextStyle(
+                color: colors.text,
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
               ),

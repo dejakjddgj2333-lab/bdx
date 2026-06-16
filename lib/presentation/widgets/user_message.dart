@@ -11,6 +11,7 @@ class UserMessage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final parts = _parseContent(content);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
@@ -22,8 +23,10 @@ class UserMessage extends StatelessWidget {
             child: Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [Color(0xFF2A2D3E), Color(0xFF1F2230)],
+                gradient: LinearGradient(
+                  colors: isDark
+                      ? const [Color(0xFF2A2D3E), Color(0xFF1F2230)]
+                      : const [Color(0xFF8B51EA), Color(0xFF622CD5)],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
@@ -33,11 +36,11 @@ class UserMessage extends StatelessWidget {
                   bottomLeft: Radius.circular(18),
                   bottomRight: Radius.circular(4),
                 ),
-                border: Border.all(color: AppColors.borderSubtle),
+                border: Border.all(color: AppColors.of(context).borderSubtle),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                children: parts.map((p) => _buildPart(p)).toList(),
+                children: parts.map((p) => _buildPart(context, p)).toList(),
               ),
             ),
           ),
@@ -46,7 +49,8 @@ class UserMessage extends StatelessWidget {
     );
   }
 
-  Widget _buildPart(Map<String, dynamic> part) {
+  Widget _buildPart(BuildContext context, Map<String, dynamic> part) {
+    final colors = AppColors.of(context);
     final type = part['type']?.toString();
     if (type == 'image_url') {
       final url = part['image_url']?['url']?.toString() ?? '';
@@ -62,13 +66,13 @@ class UserMessage extends StatelessWidget {
             placeholder: (_, __) => Container(
               width: 160,
               height: 160,
-              color: AppColors.bgElevated,
+              color: colors.bgElevated,
             ),
             errorWidget: (_, __, ___) => Container(
               width: 160,
               height: 160,
-              color: AppColors.bgElevated,
-              child: const Icon(Icons.broken_image, color: AppColors.textTertiary),
+              color: colors.bgElevated,
+              child: Icon(Icons.broken_image, color: colors.textTertiary),
             ),
           ),
         ),

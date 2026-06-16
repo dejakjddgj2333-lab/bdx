@@ -15,14 +15,16 @@ class ModelPicker extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = AppColors.of(context);
+
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
       constraints: BoxConstraints(
         maxHeight: MediaQuery.of(context).size.height * 0.75,
       ),
-      decoration: const BoxDecoration(
-        color: AppColors.bgElevated,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      decoration: BoxDecoration(
+        color: colors.bgElevated,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -32,24 +34,24 @@ class ModelPicker extends StatelessWidget {
             height: 4,
             margin: const EdgeInsets.only(bottom: 16),
             decoration: BoxDecoration(
-              color: AppColors.borderSubtle,
+              color: colors.borderSubtle,
               borderRadius: BorderRadius.circular(2),
             ),
           ),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
+              Text(
                 '选择模型',
                 style: TextStyle(
-                  color: Colors.white,
+                  color: colors.text,
                   fontSize: 18,
                   fontWeight: FontWeight.w600,
                 ),
               ),
               IconButton(
                 onPressed: () => Navigator.pop(context),
-                icon: const Icon(Icons.close, color: AppColors.textSecondary),
+                icon: Icon(Icons.close, color: colors.textSecondary),
               ),
             ],
           ),
@@ -73,10 +75,10 @@ class ModelPicker extends StatelessWidget {
                     padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
                       gradient: isSelected ? AppColors.glassGradient : null,
-                      color: isSelected ? null : AppColors.glassWhite,
+                      color: isSelected ? null : colors.glassWhite,
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(
-                        color: isSelected ? AppColors.border : AppColors.borderSubtle,
+                        color: isSelected ? colors.border : colors.borderSubtle,
                       ),
                     ),
                     child: Row(
@@ -89,8 +91,8 @@ class ModelPicker extends StatelessWidget {
                                 children: [
                                   Text(
                                     model['name']?.toString() ?? '未命名',
-                                    style: const TextStyle(
-                                      color: Colors.white,
+                                    style: TextStyle(
+                                      color: colors.text,
                                       fontSize: 15,
                                       fontWeight: FontWeight.w600,
                                     ),
@@ -116,8 +118,8 @@ class ModelPicker extends StatelessWidget {
                                   padding: const EdgeInsets.only(top: 4),
                                   child: Text(
                                     model['description'].toString(),
-                                    style: const TextStyle(
-                                      color: AppColors.textTertiary,
+                                    style: TextStyle(
+                                      color: colors.textTertiary,
                                       fontSize: 12,
                                     ),
                                   ),
@@ -128,7 +130,7 @@ class ModelPicker extends StatelessWidget {
                         if (isSelected)
                           const Icon(Icons.check_circle, color: AppColors.primaryLight)
                         else
-                          const Icon(Icons.circle_outlined, color: AppColors.textTertiary),
+                          Icon(Icons.circle_outlined, color: colors.textTertiary),
                       ],
                     ),
                   ),

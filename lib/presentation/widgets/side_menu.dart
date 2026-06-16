@@ -9,39 +9,45 @@ class SideMenu extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = AppColors.of(context);
+
     return Drawer(
-      backgroundColor: AppColors.bgElevated,
+      backgroundColor: colors.bgElevated,
       elevation: 0,
       child: Container(
         decoration: BoxDecoration(
           border: Border(
-            right: BorderSide(color: AppColors.borderSubtle),
+            right: BorderSide(color: colors.borderSubtle),
           ),
         ),
         child: SafeArea(
           child: Column(
             children: [
               _buildHeader(context),
-              const Divider(color: AppColors.borderSubtle, indent: 16, endIndent: 16),
-              _buildMenuItem(Icons.chat_bubble_outline, '新建对话', () {
+              Divider(color: colors.borderSubtle, indent: 16, endIndent: 16),
+              _buildMenuItem(context, Icons.chat_bubble_outline, '新建对话', () {
                 Navigator.pop(context);
                 context.push('/chat/detail');
               }),
-              _buildMenuItem(Icons.smart_toy_outlined, '发现智能体', () {
+              _buildMenuItem(context, Icons.smart_toy_outlined, '发现智能体', () {
                 Navigator.pop(context);
                 context.push('/agents');
               }),
-              _buildMenuItem(Icons.phone_in_talk_outlined, '语音通话', () {
+              _buildMenuItem(context, Icons.phone_in_talk_outlined, '语音通话', () {
                 Navigator.pop(context);
                 context.push('/voice-call');
               }),
               const Spacer(),
-              const Divider(color: AppColors.borderSubtle, indent: 16, endIndent: 16),
-              _buildMenuItem(Icons.person_outline, '个人中心', () {
+              Divider(color: colors.borderSubtle, indent: 16, endIndent: 16),
+              _buildMenuItem(context, Icons.settings_outlined, '设置', () {
+                Navigator.pop(context);
+                context.push('/settings');
+              }),
+              _buildMenuItem(context, Icons.person_outline, '个人中心', () {
                 Navigator.pop(context);
                 context.push('/profile');
               }),
-              _buildMenuItem(Icons.logout, '退出登录', () {
+              _buildMenuItem(context, Icons.logout, '退出登录', () {
                 Navigator.pop(context);
                 context.read<AuthBloc>().add(const AuthLogoutRequested());
                 context.go('/login');
@@ -55,6 +61,8 @@ class SideMenu extends StatelessWidget {
   }
 
   Widget _buildHeader(BuildContext context) {
+    final colors = AppColors.of(context);
+
     return BlocBuilder<AuthBloc, AuthState>(
       builder: (context, state) {
         final nickname = state.user?.nickname ?? '未登录';
@@ -84,8 +92,8 @@ class SideMenu extends StatelessWidget {
                   children: [
                     Text(
                       nickname,
-                      style: const TextStyle(
-                        color: Colors.white,
+                      style: TextStyle(
+                        color: colors.text,
                         fontSize: 18,
                         fontWeight: FontWeight.w600,
                       ),
@@ -93,8 +101,8 @@ class SideMenu extends StatelessWidget {
                     const SizedBox(height: 4),
                     Text(
                       state.isAuthenticated ? '已登录' : '未登录',
-                      style: const TextStyle(
-                        color: AppColors.textTertiary,
+                      style: TextStyle(
+                        color: colors.textTertiary,
                         fontSize: 12,
                       ),
                     ),
@@ -109,31 +117,34 @@ class SideMenu extends StatelessWidget {
   }
 
   Widget _buildMenuItem(
+    BuildContext context,
     IconData icon,
     String title,
     VoidCallback onTap, {
     Color? color,
   }) {
+    final colors = AppColors.of(context);
+
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 20),
       leading: Container(
         width: 36,
         height: 36,
         decoration: BoxDecoration(
-          color: AppColors.glassWhite,
+          color: colors.glassWhite,
           borderRadius: BorderRadius.circular(10),
         ),
-        child: Icon(icon, color: color ?? AppColors.textSecondary, size: 20),
+        child: Icon(icon, color: color ?? colors.textSecondary, size: 20),
       ),
       title: Text(
         title,
         style: TextStyle(
-          color: color ?? Colors.white,
+          color: color ?? colors.text,
           fontSize: 15,
           fontWeight: FontWeight.w500,
         ),
       ),
-      trailing: Icon(Icons.chevron_right, color: AppColors.textTertiary, size: 20),
+      trailing: Icon(Icons.chevron_right, color: colors.textTertiary, size: 20),
       onTap: onTap,
     );
   }

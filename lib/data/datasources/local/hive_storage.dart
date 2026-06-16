@@ -18,6 +18,15 @@ class HiveStorage {
     return value?.toString();
   }
 
+  Future<void> setThemeMode(String mode) async {
+    await _box.put('app_theme_mode', mode);
+  }
+
+  String? getThemeMode() {
+    final value = _box.get('app_theme_mode');
+    return value?.toString();
+  }
+
   Future<void> setJson(String key, Map<String, dynamic> value) async {
     await _box.put(key, jsonEncode(value));
   }
