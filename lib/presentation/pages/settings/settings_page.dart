@@ -208,6 +208,7 @@ class SettingsPage extends StatelessWidget {
                     context,
                     voice: voice,
                     label: config.labelFor(voice),
+                    intro: config.introFor(voice),
                     isSelected: isSelected,
                     onTap: () => context.read<VoiceCallSettingsCubit>().selectVoice(voice),
                   ),
@@ -224,6 +225,7 @@ class SettingsPage extends StatelessWidget {
     BuildContext context, {
     required String voice,
     required String label,
+    String? intro,
     required bool isSelected,
     required VoidCallback onTap,
   }) {
@@ -251,13 +253,31 @@ class SettingsPage extends StatelessWidget {
             ),
             const SizedBox(width: 12),
             Expanded(
-              child: Text(
-                label,
-                style: TextStyle(
-                  color: isSelected ? colors.text : colors.textSecondary,
-                  fontSize: 15,
-                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    label,
+                    style: TextStyle(
+                      color: isSelected ? colors.text : colors.textSecondary,
+                      fontSize: 15,
+                      fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                    ),
+                  ),
+                  if (intro != null && intro.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 2),
+                      child: Text(
+                        intro,
+                        style: TextStyle(
+                          color: isSelected ? colors.textSecondary : colors.textTertiary,
+                          fontSize: 12,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                ],
               ),
             ),
             if (isSelected)

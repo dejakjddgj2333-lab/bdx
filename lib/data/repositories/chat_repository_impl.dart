@@ -286,13 +286,28 @@ class ChatRepositoryImpl implements ChatRepository {
     return const VoiceProviderConfig(
       provider: 'qwen',
       name: '阿里百炼实时多模态',
-      voices: ['zhiyan', 'xiaogang', 'xiaomei'],
+      voices: ['Tina', 'Cindy', 'Serena', 'Ethan', 'Raymond', 'Qiao', 'Momo', 'Li'],
       voiceLabels: {
-        'zhiyan': '知言',
-        'xiaogang': '小刚',
-        'xiaomei': '小美',
+        'Tina': 'Tina',
+        'Cindy': 'Cindy',
+        'Serena': 'Serena',
+        'Ethan': 'Ethan',
+        'Raymond': 'Raymond',
+        'Qiao': 'Qiao',
+        'Momo': 'Momo',
+        'Li': 'Li',
       },
-      defaultVoice: 'zhiyan',
+      voiceIntros: {
+        'Tina': '默认女声，自然清晰',
+        'Cindy': '活泼轻快女声',
+        'Serena': '沉稳优雅女声',
+        'Ethan': '沉稳自然男声',
+        'Raymond': '成熟磁性男声',
+        'Qiao': '亲和中文女声',
+        'Momo': '可爱灵动女声',
+        'Li': '自然偏低男声',
+      },
+      defaultVoice: 'Tina',
     );
   }
 

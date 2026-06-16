@@ -18,9 +18,13 @@ class WebSocketService {
 
   WebSocketService(this._secureStorage);
 
-  Future<void> connect() async {
+  Future<void> connect({String? voice}) async {
     final token = await _secureStorage.getToken();
-    final uri = Uri.parse('${ApiConstants.wsUrl}?token=$token');
+    final queryParams = <String, String>{'token': token ?? ''};
+    if (voice != null && voice.isNotEmpty) {
+      queryParams['voice'] = voice;
+    }
+    final uri = Uri.parse(ApiConstants.wsUrl).replace(queryParameters: queryParams);
     log('WebSocket 连接: $uri');
     _channel = WebSocketChannel.connect(uri);
 

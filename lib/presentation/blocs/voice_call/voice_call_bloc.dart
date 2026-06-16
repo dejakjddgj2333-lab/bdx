@@ -56,9 +56,11 @@ class VoiceCallBloc extends Bloc<VoiceCallEvent, VoiceCallState> {
         log('加载语音通话配置失败，使用默认音色: $configErr');
       }
 
-      // 1. 先连 WebSocket，确保后端能收到连接请求并打印日志
-      await _webSocketService.connect();
-      log('WebSocket 已连接');
+      // 1. 先连 WebSocket，把 App 选择的音色带在 URL 参数里
+      final settingsState = _voiceCallSettingsCubit.state;
+      final voice = settingsState.selectedVoice ?? settingsState.config?.defaultVoice;
+      await _webSocketService.connect(voice: voice);
+      log('WebSocket 已连接, voice=$voice');
 
       _messageSubscription = _webSocketService.messageStream.listen(
         (msg) => add(VoiceCallMessageReceived(msg)),
