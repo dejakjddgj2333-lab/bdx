@@ -26,10 +26,14 @@ class App extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (_) => getIt<AuthBloc>()..add(const AuthCheckRequested()),
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider(
+          create: (_) => getIt<AuthBloc>()..add(const AuthCheckRequested()),
+        ),
+        BlocProvider<ThemeCubit>.value(value: getIt<ThemeCubit>()),
+      ],
       child: BlocBuilder<ThemeCubit, ThemeState>(
-        bloc: getIt<ThemeCubit>(),
         builder: (context, themeState) {
           return MaterialApp.router(
             title: '北斗星AI',
