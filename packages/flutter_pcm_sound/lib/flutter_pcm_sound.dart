@@ -63,6 +63,13 @@ class FlutterPcmSound {
     return await _invokeMethod('setPreferredSampleRate', {'sample_rate': sampleRate});
   }
 
+  /// Request microphone record permission (iOS only).
+  /// Returns true if granted.
+  static Future<bool> requestRecordPermission() async {
+    final result = await _invokeMethod('requestRecordPermission');
+    return result == true;
+  }
+
   /// set the threshold at which we call the
   /// feed callback. i.e. if we have less than X
   /// queued frames, the feed callback will be invoked

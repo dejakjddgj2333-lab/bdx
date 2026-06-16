@@ -22,9 +22,7 @@ class AudioRecorderServiceImpl implements AudioRecorderService {
   @override
   Future<bool> hasPermission() async {
     if (Platform.isIOS) {
-      // iOS 权限由 flutter_pcm_sound 通过 AVAudioSession 隐式触发；
-      // 这里始终返回 true，真正无权限时 startRecording 会失败。
-      return true;
+      return await FlutterPcmSound.requestRecordPermission();
     }
     return await _recorder.hasPermission();
   }

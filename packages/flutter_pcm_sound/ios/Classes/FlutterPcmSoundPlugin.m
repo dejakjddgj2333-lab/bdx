@@ -373,6 +373,21 @@ typedef NS_ENUM(NSUInteger, LogLevel) {
             self.mIsRecording = NO;
             result(@YES);
         }
+        else if ([@"requestRecordPermission" isEqualToString:call.method])
+        {
+#if TARGET_OS_IOS
+            AVAudioSession *session = [AVAudioSession sharedInstance];
+            if ([session respondsToSelector:@selector(requestRecordPermission:)]) {
+                [session requestRecordPermission:^(BOOL granted) {
+                    result(@(granted));
+                }];
+            } else {
+                result(@YES);
+            }
+#else
+            result(@YES);
+#endif
+        }
         else if([@"release" isEqualToString:call.method])
         {
             [self cleanup];

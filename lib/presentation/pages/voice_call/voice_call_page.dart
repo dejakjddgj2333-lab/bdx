@@ -1,10 +1,13 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:permission_handler/permission_handler.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../injection.dart';
+import '../../../services/audio_recorder_service.dart';
 import '../../blocs/auth/auth_bloc.dart';
 import '../../blocs/voice_call/voice_call_bloc.dart';
 
@@ -45,7 +48,23 @@ class _VoiceCallPageState extends State<VoiceCallPage>
       return;
     }
 
-    // 先查当前状态，避免已永久拒绝时反复弹窗
+    // iOS：用 flutter_pcm_sound 自己的 AVAudioSession 申请麦克风权限
+    if (Platform.isIOS) {
+      debugPrint('VoiceCall: iOS 申请麦克风权限...');
+      final granted = await getIt<AudioRecorderService>().hasPermission();
+      debugPrint('VoiceCall: iOS 麦克风权限 = $granted');
+      if (!mounted) return;
+      if (granted) {
+        setState(() => _microphoneDenied = false);
+        context.read<VoiceCallBloc>().add(const VoiceCallStarted());
+        _startDurationTimer();
+      } else {
+        setState(() => _microphoneDenied = true);
+      }
+      return;
+    }
+
+    // Android：继续用 permission_handler
     debugPrint('VoiceCall: 检查麦克风权限状态...');
     final current = await Permission.microphone.status;
     debugPrint('VoiceCall: 当前麦克风权限状态 = $current');
