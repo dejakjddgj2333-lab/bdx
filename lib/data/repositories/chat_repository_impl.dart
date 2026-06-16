@@ -254,14 +254,12 @@ class ChatRepositoryImpl implements ChatRepository {
       id: json['id']?.toString(),
       title: json['title']?.toString(),
       model: json['model']?.toString(),
-      agentId: json['agentId']?.toString(),
+      agentId: (json['agentId'] ?? json['agent_id'])?.toString(),
       agent: json['agent'] as Map<String, dynamic>?,
-      createdAt: json['createdAt'] != null
-          ? DateTime.tryParse(json['createdAt'].toString())
-          : null,
-      updatedAt: json['updatedAt'] != null
-          ? DateTime.tryParse(json['updatedAt'].toString())
-          : null,
+      createdAt: _parseDate(json['createdAt'] ?? json['created_at']),
+      updatedAt: _parseDate(json['last_message_at']) ??
+          _parseDate(json['updatedAt'] ?? json['updated_at']) ??
+          _parseDate(json['createdAt'] ?? json['created_at']),
     );
   }
 
@@ -272,9 +270,12 @@ class ChatRepositoryImpl implements ChatRepository {
       content: json['content'],
       contentType: json['contentType']?.toString(),
       model: json['model']?.toString(),
-      createdAt: json['createdAt'] != null
-          ? DateTime.tryParse(json['createdAt'].toString())
-          : null,
+      createdAt: _parseDate(json['createdAt'] ?? json['created_at']),
     );
+  }
+
+  DateTime? _parseDate(dynamic value) {
+    if (value == null) return null;
+    return DateTime.tryParse(value.toString());
   }
 }

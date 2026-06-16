@@ -20,15 +20,8 @@ class ChatListPage extends StatefulWidget {
 
 class _ChatListPageState extends State<ChatListPage> {
   bool _showSearch = false;
+  bool _hasRequestedList = false;
   final _searchController = TextEditingController();
-
-  @override
-  void initState() {
-    super.initState();
-    if (context.read<AuthBloc>().state.isAuthenticated) {
-      context.read<ChatListBloc>().add(const ChatListLoaded());
-    }
-  }
 
   @override
   void dispose() {
@@ -41,7 +34,13 @@ class _ChatListPageState extends State<ChatListPage> {
     return Scaffold(
       backgroundColor: Colors.transparent,
       drawer: const SideMenu(),
-      body: BlocBuilder<AuthBloc, AuthState>(
+      body: BlocConsumer<AuthBloc, AuthState>(
+        listener: (context, authState) {
+          if (authState is AuthAuthenticated && !_hasRequestedList) {
+            _hasRequestedList = true;
+            context.read<ChatListBloc>().add(const ChatListLoaded());
+          }
+        },
         builder: (context, authState) {
           return Column(
             children: [
@@ -65,15 +64,23 @@ class _ChatListPageState extends State<ChatListPage> {
                 ],
               ),
               Expanded(
-                child: authState.isAuthenticated
-                    ? _buildAuthenticatedBody(context)
-                    : _buildLoginPrompt(context),
+                child: _buildBody(authState),
               ),
             ],
           );
         },
       ),
     );
+  }
+
+  Widget _buildBody(AuthState authState) {
+    if (authState is AuthInitial || authState is AuthLoading) {
+      return const Center(child: LoadingIndicator());
+    }
+    if (authState.isAuthenticated) {
+      return _buildAuthenticatedBody(context);
+    }
+    return _buildLoginPrompt(context);
   }
 
   Widget _buildAuthenticatedBody(BuildContext context) {

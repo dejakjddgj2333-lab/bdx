@@ -4,10 +4,11 @@ class DateUtils {
   DateUtils._();
 
   static String groupLabel(DateTime date) {
+    final local = date.toLocal();
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     final yesterday = today.subtract(const Duration(days: 1));
-    final dateDay = DateTime(date.year, date.month, date.day);
+    final dateDay = DateTime(local.year, local.month, local.day);
 
     if (dateDay == today) return '今天';
     if (dateDay == yesterday) return '昨天';
@@ -17,14 +18,14 @@ class DateUtils {
       return '本周';
     }
 
-    return DateFormat('yyyy-MM-dd').format(date);
+    return DateFormat('yyyy-MM-dd').format(local);
   }
 
   static String formatTime(DateTime date) {
-    return DateFormat('HH:mm').format(date);
+    return DateFormat('HH:mm').format(date.toLocal());
   }
 
   static String formatDateTime(DateTime date) {
-    return DateFormat('MM-dd HH:mm').format(date);
+    return DateFormat('MM-dd HH:mm').format(date.toLocal());
   }
 }
