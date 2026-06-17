@@ -2,6 +2,9 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import '../../core/constants/api_constants.dart';
 import '../../core/constants/app_colors.dart';
+import '../../core/constants/app_dimens.dart';
+import '../../core/utils/bdx_animations.dart';
+import 'bdx/glass_card.dart';
 
 class UserMessage extends StatelessWidget {
   final dynamic content;
@@ -13,39 +16,40 @@ class UserMessage extends StatelessWidget {
     final parts = _parseContent(content);
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.end,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Flexible(
-            child: Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: isDark
-                      ? const [Color(0xFF2A2D3E), Color(0xFF1F2230)]
-                      : const [Color(0xFF8B51EA), Color(0xFF622CD5)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
+    return BdxAnimations.messageEnter(
+      Padding(
+        padding: const EdgeInsets.symmetric(
+          vertical: AppDimens.s8,
+          horizontal: AppDimens.s16,
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Flexible(
+              child: GlassCard(
+                useBlur: true,
+                borderRadius: AppDimens.r18,
+                customBorderRadius: AppDimens.messageBubble(isUser: true),
+                borderColor: AppColors.of(context).borderSubtle,
+                gradient: isDark
+                    ? const LinearGradient(
+                        colors: [Color(0xFF2A2D3E), Color(0xFF1F2230)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      )
+                    : AppColors.primaryGradient,
+                padding: const EdgeInsets.all(AppDimens.s12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: parts.map((p) => _buildPart(context, p)).toList(),
                 ),
-                borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(18),
-                  topRight: Radius.circular(18),
-                  bottomLeft: Radius.circular(18),
-                  bottomRight: Radius.circular(4),
-                ),
-                border: Border.all(color: AppColors.of(context).borderSubtle),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: parts.map((p) => _buildPart(context, p)).toList(),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
+      isUser: true,
     );
   }
 
@@ -55,20 +59,20 @@ class UserMessage extends StatelessWidget {
     if (type == 'image_url') {
       final url = part['image_url']?['url']?.toString() ?? '';
       return Padding(
-        padding: const EdgeInsets.only(bottom: 8),
+        padding: const EdgeInsets.only(bottom: AppDimens.s8),
         child: ClipRRect(
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(AppDimens.r10),
           child: CachedNetworkImage(
             imageUrl: _getImageUrl(url),
             width: 160,
             height: 160,
             fit: BoxFit.cover,
-            placeholder: (_, __) => Container(
+            placeholder: (_, _) => Container(
               width: 160,
               height: 160,
               color: colors.bgElevated,
             ),
-            errorWidget: (_, __, ___) => Container(
+            errorWidget: (_, _, _) => Container(
               width: 160,
               height: 160,
               color: colors.bgElevated,
@@ -81,7 +85,11 @@ class UserMessage extends StatelessWidget {
 
     return Text(
       part['text']?.toString() ?? '',
-      style: const TextStyle(color: Colors.white, fontSize: 15, height: 1.5),
+      style: const TextStyle(
+        color: Colors.white,
+        fontSize: 15,
+        height: 1.5,
+      ),
     );
   }
 

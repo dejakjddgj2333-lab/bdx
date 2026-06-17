@@ -22,8 +22,28 @@ class VoiceCallBloc extends Bloc<VoiceCallEvent, VoiceCallState> {
   Timer? _speakingWatchdog;
   Timer? _playerWatchdog;
   Timer? _micResumeTimer;
+  Timer? _vadThresholdTimer;
   DateTime? _lastAudioDeltaTime;
   bool _micPausedForAi = false;
+  bool _isResettingPlayer = false;
+
+  /// AI 播放结束后，等缓冲排空再继续等多久才恢复麦克风（ms）
+  static const int _aiResumeTailMs = 800;
+
+  /// AI 播放结束后恢复麦克风时丢弃前 N ms，避免发送房间混响
+  static const int _aiResumeDropMs = 250;
+
+  /// 用户打断时先停麦多久，让扬声器尾音衰减（ms）
+  static const int _interruptMuteMs = 150;
+
+  /// 用户打断恢复麦克风后丢弃前 N ms
+  static const int _interruptDropMs = 200;
+
+  /// 打断后多久才把 VAD threshold 降到正常值（ms）
+  static const int _postInterruptVadDelayMs = 500;
+
+  /// response.done 后多久把 VAD threshold 降到正常值（ms）
+  static const int _postAiVadDelayMs = 600;
 
   VoiceCallBloc(
     this._webSocketService,
@@ -82,6 +102,7 @@ class VoiceCallBloc extends Bloc<VoiceCallEvent, VoiceCallState> {
       _startPlayerWatchdog();
     } catch (e) {
       log('通话连接失败: $e');
+      if (isClosed) return;
       emit(state.copyWith(status: CallStatus.error, error: e.toString()));
     }
   }
@@ -95,6 +116,7 @@ class VoiceCallBloc extends Bloc<VoiceCallEvent, VoiceCallState> {
     _playerWatchdog?.cancel();
     _micResumeTimer?.cancel();
     _micPausedForAi = false;
+    _isResettingPlayer = false;
     await _audioRecorderService.stopRecording();
     await _audioPlayerService.dispose();
     _webSocketService.disconnect();
@@ -107,6 +129,7 @@ class VoiceCallBloc extends Bloc<VoiceCallEvent, VoiceCallState> {
     VoiceCallToggleMute event,
     Emitter<VoiceCallState> emit,
   ) async {
+    _micResumeTimer?.cancel();
     final newValue = !state.isMuted;
     log('静音切换: $newValue');
     emit(state.copyWith(isMuted: newValue));
@@ -149,6 +172,7 @@ class VoiceCallBloc extends Bloc<VoiceCallEvent, VoiceCallState> {
         final voice = settingsState.selectedVoice ?? settingsState.config?.defaultVoice;
         _webSocketService.sendConfig(voice: voice);
         await Future.delayed(const Duration(milliseconds: 200));
+        if (isClosed) return;
         if (!state.isMuted) {
           log('启动录音');
           await _audioRecorderService.startRecording(
@@ -157,6 +181,7 @@ class VoiceCallBloc extends Bloc<VoiceCallEvent, VoiceCallState> {
         }
         emit(state.copyWith(status: CallStatus.connected));
         await Future.delayed(const Duration(milliseconds: 300));
+        if (isClosed) return;
         if (state.status == CallStatus.connected) {
           emit(state.copyWith(status: CallStatus.listening));
         }
@@ -164,10 +189,45 @@ class VoiceCallBloc extends Bloc<VoiceCallEvent, VoiceCallState> {
 
       case 'input_audio_buffer.speech_started':
       case 'speech_started':
-        log('检测到用户开始说话');
-        // 服务端处理打断，客户端不停止本地播放，只切换状态
+        log('检测到用户开始说话，清空 AI 播放并做回声保护');
+        _speakingWatchdog?.cancel();
+        _lastAudioDeltaTime = null;
+        _micResumeTimer?.cancel();
+        await _audioPlayerService.clearBuffer();
+        if (isClosed) return;
         emit(state.copyWith(status: CallStatus.listening));
-        _webSocketService.updateVadThreshold(0.3);
+        _scheduleVadThresholdDrop(
+          initial: 0.5,
+          target: 0.3,
+          delay: const Duration(milliseconds: _postInterruptVadDelayMs),
+        );
+        // 如果 AI 说话时麦克风被暂停，现在需要恢复，但要先等扬声器尾音衰减。
+        if (!state.isMuted &&
+            _micPausedForAi &&
+            state.status.isInCall &&
+            state.status != CallStatus.speaking) {
+          _micPausedForAi = false;
+          log('打断：先停麦 $_interruptMuteMs ms 衰减尾音');
+          await _audioRecorderService.stopRecording();
+          _micResumeTimer = Timer(
+            const Duration(milliseconds: _interruptMuteMs),
+            () async {
+              if (isClosed) return;
+              if (state.isMuted ||
+                  !state.status.isInCall ||
+                  state.status == CallStatus.speaking) {
+                return;
+              }
+              log('打断保护期结束，恢复麦克风并丢弃前 $_interruptDropMs ms');
+              await _audioRecorderService.startRecording(
+                onData: (data) => _webSocketService.sendAudio(data),
+                dropInitial: const Duration(milliseconds: _interruptDropMs),
+              );
+            },
+          );
+        } else {
+          _micPausedForAi = false;
+        }
         break;
 
       case 'input_audio_buffer.speech_stopped':
@@ -193,6 +253,13 @@ class VoiceCallBloc extends Bloc<VoiceCallEvent, VoiceCallState> {
 
       case 'response.created':
         log('AI 开始响应');
+        if (state.status == CallStatus.speaking) {
+          log('新响应开始时 AI 仍在播放，清空旧音频');
+          await _audioPlayerService.clearBuffer();
+          if (isClosed) return;
+        }
+        _speakingWatchdog?.cancel();
+        _lastAudioDeltaTime = null;
         emit(state.copyWith(status: CallStatus.thinking));
         break;
 
@@ -218,6 +285,7 @@ class VoiceCallBloc extends Bloc<VoiceCallEvent, VoiceCallState> {
           if (!state.isMuted) {
             _micPausedForAi = true;
             await _audioRecorderService.stopRecording();
+            if (isClosed) return;
           }
           _webSocketService.updateVadThreshold(0.6);
           _startSpeakingWatchdog();
@@ -233,18 +301,16 @@ class VoiceCallBloc extends Bloc<VoiceCallEvent, VoiceCallState> {
         _speakingWatchdog?.cancel();
         _lastAudioDeltaTime = null;
         await _audioPlayerService.flushAccumulatedAudio();
+        if (isClosed) return;
         emit(state.copyWith(status: CallStatus.listening));
-        _webSocketService.updateVadThreshold(0.4);
+        _scheduleVadThresholdDrop(
+          initial: 0.5,
+          target: 0.3,
+          delay: const Duration(milliseconds: _postAiVadDelayMs),
+        );
         if (_micPausedForAi && !state.isMuted) {
           _micResumeTimer?.cancel();
-          _micResumeTimer = Timer(const Duration(milliseconds: 500), () async {
-            _micPausedForAi = false;
-            if (state.isMuted || !state.status.isInCall) return;
-            log('AI 说完 500ms 尾音消退后，恢复麦克风');
-            await _audioRecorderService.startRecording(
-              onData: (data) => _webSocketService.sendAudio(data),
-            );
-          });
+          _scheduleMicResumeAfterAiSpeech();
         }
         break;
 
@@ -286,9 +352,71 @@ class VoiceCallBloc extends Bloc<VoiceCallEvent, VoiceCallState> {
     }
   }
 
+  void _scheduleVadThresholdDrop({
+    required double initial,
+    required double target,
+    required Duration delay,
+  }) {
+    _vadThresholdTimer?.cancel();
+    _webSocketService.updateVadThreshold(initial);
+    _vadThresholdTimer = Timer(delay, () {
+      if (isClosed) return;
+      log('VAD threshold 从 $initial 降至 $target');
+      _webSocketService.updateVadThreshold(target);
+    });
+  }
+
+  /// AI 播放结束后，等播放缓冲真正排空并再留一段尾音，再恢复麦克风。
+  void _scheduleMicResumeAfterAiSpeech() {
+    _micResumeTimer?.cancel();
+    _micResumeTimer = Timer.periodic(
+      const Duration(milliseconds: 100),
+      (_) async {
+        if (isClosed) {
+          _micResumeTimer?.cancel();
+          return;
+        }
+        if (!_micPausedForAi) {
+          _micResumeTimer?.cancel();
+          return;
+        }
+        if (state.isMuted ||
+            !state.status.isInCall ||
+            state.status == CallStatus.speaking) {
+          _micResumeTimer?.cancel();
+          return;
+        }
+        if (_audioPlayerService.isPlaybackActive) {
+          // 仍在播放或刚播完，继续等待。
+          return;
+        }
+        // 缓冲已排空，再等尾音保护期。
+        _micResumeTimer?.cancel();
+        await Future.delayed(
+          const Duration(milliseconds: _aiResumeTailMs),
+        );
+        if (isClosed) return;
+        if (!_micPausedForAi ||
+            state.isMuted ||
+            !state.status.isInCall ||
+            state.status == CallStatus.speaking) {
+          _micPausedForAi = false;
+          return;
+        }
+        log('AI 播放排干且尾音消退后，恢复麦克风');
+        await _audioRecorderService.startRecording(
+          onData: (data) => _webSocketService.sendAudio(data),
+          dropInitial: const Duration(milliseconds: _aiResumeDropMs),
+        );
+        _micPausedForAi = false;
+      },
+    );
+  }
+
   void _startSpeakingWatchdog() {
     _speakingWatchdog?.cancel();
     _speakingWatchdog = Timer.periodic(const Duration(seconds: 2), (_) async {
+      if (isClosed) return;
       if (state.status != CallStatus.speaking) {
         _speakingWatchdog?.cancel();
         return;
@@ -299,6 +427,7 @@ class VoiceCallBloc extends Bloc<VoiceCallEvent, VoiceCallState> {
         log('AI speaking 超过 6 秒无新音频, 强制重置为 listening');
         _lastAudioDeltaTime = null;
         await _audioPlayerService.flushAccumulatedAudio();
+        if (isClosed) return;
         add(const _VoiceCallForceListening());
       }
     });
@@ -307,9 +436,33 @@ class VoiceCallBloc extends Bloc<VoiceCallEvent, VoiceCallState> {
   void _startPlayerWatchdog() {
     _playerWatchdog?.cancel();
     _playerWatchdog = Timer.periodic(const Duration(seconds: 3), (_) async {
-      if (_audioPlayerService.isStuck) {
-        await _audioPlayerService.forceReset();
+      if (isClosed) return;
+      if (!_audioPlayerService.isStuck) return;
+      if (_isResettingPlayer) return;
+      _isResettingPlayer = true;
+
+      log('AudioPlayer 长时间无数据，先停录音再强制重置');
+      await _audioRecorderService.stopRecording();
+      await _audioPlayerService.forceReset();
+
+      if (isClosed) {
+        _isResettingPlayer = false;
+        return;
       }
+      final currentStatus = state.status;
+      final muted = state.isMuted;
+      if (!muted &&
+          currentStatus.isInCall &&
+          currentStatus != CallStatus.speaking) {
+        log('播放器重置后恢复麦克风');
+        await _audioRecorderService.startRecording(
+          onData: (data) => _webSocketService.sendAudio(data),
+        );
+      } else if (currentStatus == CallStatus.speaking) {
+        // AI 正在说话时麦克风本来就应暂停，由 response.done 统一恢复。
+        _micPausedForAi = true;
+      }
+      _isResettingPlayer = false;
     });
   }
 
@@ -318,11 +471,13 @@ class VoiceCallBloc extends Bloc<VoiceCallEvent, VoiceCallState> {
     _speakingWatchdog?.cancel();
     _playerWatchdog?.cancel();
     _micResumeTimer?.cancel();
+    _vadThresholdTimer?.cancel();
     _micPausedForAi = false;
+    _isResettingPlayer = false;
     await _messageSubscription?.cancel();
     await _audioSubscription?.cancel();
     await _audioRecorderService.stopRecording();
-    await _audioPlayerService.cancelPlaying();
+    await _audioPlayerService.dispose();
     _webSocketService.disconnect();
     return super.close();
   }

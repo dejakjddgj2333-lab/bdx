@@ -78,9 +78,4 @@ class RecordPluginWebStub extends RecordPlatform {
     void Function(RecordConfig config)? onChanged,
   ) {}
 
-  @override
-  void setOnStateChanged(
-    String recorderId,
-    void Function(String recorderId, RecordState state)? onChanged,
-  ) {}
 }

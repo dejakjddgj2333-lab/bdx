@@ -1,9 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:fluttertoast/fluttertoast.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
-import 'package:beidouxing_app_flutter/core/constants/app_colors.dart';
+import '../../../core/constants/app_colors.dart';
+import '../../../core/constants/app_dimens.dart';
+import '../../../core/constants/app_shadows.dart';
+import '../../../core/constants/app_text_styles.dart';
+import '../../../core/utils/bdx_animations.dart';
 import '../../blocs/auth/auth_bloc.dart';
+import '../../widgets/bdx/bdx.dart';
+import '../../widgets/tech_background.dart';
 
 class LoginPage extends StatefulWidget {
   final String? redirect;
@@ -15,7 +22,7 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   late TabController _tabController;
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
@@ -37,15 +44,16 @@ class _LoginPageState extends State<LoginPage>
   }
 
   void _submit() {
+    HapticFeedback.lightImpact();
     final username = _usernameController.text.trim();
     final password = _passwordController.text.trim();
 
     if (username.length < 2) {
-      _showToast('用户名至少2位');
+      BdxToast.show(context, message: '用户名至少2位');
       return;
     }
     if (password.length < 6) {
-      _showToast('密码至少6位');
+      BdxToast.show(context, message: '密码至少6位');
       return;
     }
 
@@ -59,17 +67,6 @@ class _LoginPageState extends State<LoginPage>
     }
   }
 
-  void _showToast(String msg) {
-    Fluttertoast.showToast(
-      msg: msg,
-      toastLength: Toast.LENGTH_SHORT,
-      gravity: ToastGravity.CENTER,
-      backgroundColor: AppColors.pink,
-      textColor: Colors.white,
-      fontSize: 14,
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final bottomPadding = MediaQuery.of(context).padding.bottom;
@@ -78,81 +75,95 @@ class _LoginPageState extends State<LoginPage>
     return Scaffold(
       resizeToAvoidBottomInset: true,
       backgroundColor: colors.bg,
-      body: BlocListener<AuthBloc, AuthState>(
-        listener: (context, state) {
-          if (state is AuthAuthenticated) {
-            final redirect = widget.redirect;
-            if (redirect != null && redirect.isNotEmpty) {
-              context.go(redirect);
-            } else {
-              context.go('/');
+      body: TechBackground(
+        child: BlocListener<AuthBloc, AuthState>(
+          listener: (context, state) {
+            if (state is AuthAuthenticated) {
+              final redirect = widget.redirect;
+              if (redirect != null && redirect.isNotEmpty) {
+                context.go(redirect);
+              } else {
+                context.go('/');
+              }
+            } else if (state is AuthError) {
+              BdxToast.show(
+                context,
+                message: state.error ?? '登录失败',
+                icon: Icons.error_outline,
+              );
             }
-          } else if (state is AuthError) {
-            _showToast(state.error ?? '登录失败');
-          }
-        },
-        child: SafeArea(
-          child: Center(
-            child: SingleChildScrollView(
-              padding: EdgeInsets.fromLTRB(32, 24, 32, bottomPadding + 24),
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 420),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    _buildLogo(),
-                    const SizedBox(height: 28),
-                    Text(
-                      '北斗星AI',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: colors.text,
-                        fontSize: 30,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 1.2,
-                      ),
+          },
+          child: SafeArea(
+            child: Center(
+              child: SingleChildScrollView(
+                padding: EdgeInsets.fromLTRB(
+                  AppDimens.s32,
+                  AppDimens.s24,
+                  AppDimens.s32,
+                  bottomPadding + AppDimens.s24,
+                ),
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 420),
+                  child: BdxAnimations.pageEnter(
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        _buildLogo(),
+                        const SizedBox(height: AppDimens.s28),
+                        Text(
+                          '北斗星AI',
+                          textAlign: TextAlign.center,
+                          style: AppTextStyles.display(context).copyWith(
+                            fontSize: 32,
+                            letterSpacing: 1.2,
+                          ),
+                        ),
+                        const SizedBox(height: AppDimens.s8),
+                        Text(
+                          '探索 AI 的无限可能',
+                          textAlign: TextAlign.center,
+                          style: AppTextStyles.bodySmall(context).copyWith(
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                        const SizedBox(height: AppDimens.s40),
+                        _buildTabBar(),
+                        const SizedBox(height: AppDimens.s32),
+                        _buildTextField(
+                          controller: _usernameController,
+                          hint: '用户名',
+                          icon: Icons.person_outline,
+                        ),
+                        const SizedBox(height: AppDimens.s16),
+                        _buildTextField(
+                          controller: _passwordController,
+                          hint: '密码',
+                          icon: Icons.lock_outline,
+                          obscureText: true,
+                        ),
+                        const SizedBox(height: AppDimens.s16),
+                        AnimatedBuilder(
+                          animation: _tabController,
+                          builder: (_, _) {
+                            if (_tabController.index == 0) {
+                              return const SizedBox.shrink();
+                            }
+                            return BdxAnimations.fadeSlideIn(
+                              _buildTextField(
+                                controller: _nicknameController,
+                                hint: '昵称（可选）',
+                                icon: Icons.badge_outlined,
+                              ),
+                              beginY: 0.05,
+                            );
+                          },
+                        ),
+                        const SizedBox(height: AppDimens.s36),
+                        _buildSubmitButton(),
+                        const SizedBox(height: AppDimens.s24),
+                      ],
                     ),
-                    const SizedBox(height: 8),
-                    Text(
-                      '探索 AI 的无限可能',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: colors.textSecondary,
-                        fontSize: 14,
-                        letterSpacing: 0.5,
-                      ),
-                    ),
-                    const SizedBox(height: 40),
-                    _buildTabBar(),
-                    const SizedBox(height: 32),
-                    _buildTextField(
-                      controller: _usernameController,
-                      hint: '用户名',
-                      icon: Icons.person_outline,
-                    ),
-                    const SizedBox(height: 16),
-                    _buildTextField(
-                      controller: _passwordController,
-                      hint: '密码',
-                      icon: Icons.lock_outline,
-                      obscureText: true,
-                    ),
-                    const SizedBox(height: 16),
-                    AnimatedBuilder(
-                      animation: _tabController,
-                      builder: (_, __) {
-                        if (_tabController.index == 0) return const SizedBox.shrink();
-                        return _buildTextField(
-                          controller: _nicknameController,
-                          hint: '昵称（可选）',
-                          icon: Icons.badge_outlined,
-                        );
-                      },
-                    ),
-                    const SizedBox(height: 36),
-                    _buildSubmitButton(),
-                    const SizedBox(height: 24),
-                  ],
+                  ),
                 ),
               ),
             ),
@@ -169,23 +180,17 @@ class _LoginPageState extends State<LoginPage>
         height: 100,
         decoration: BoxDecoration(
           gradient: AppColors.primaryGradient,
-          borderRadius: BorderRadius.circular(28),
-          boxShadow: [
-            BoxShadow(
-              color: AppColors.primary.withOpacity(0.35),
-              blurRadius: 32,
-              spreadRadius: 4,
-            ),
-          ],
+          borderRadius: BorderRadius.circular(AppDimens.r28),
+          boxShadow: AppShadows.glowPrimary(),
         ),
         child: ClipRRect(
-          borderRadius: BorderRadius.circular(28),
+          borderRadius: BorderRadius.circular(AppDimens.r28),
           child: Padding(
             padding: const EdgeInsets.all(12),
             child: Image.asset(
               'assets/images/logo.png',
               fit: BoxFit.contain,
-              errorBuilder: (_, __, ___) => const Icon(
+              errorBuilder: (_, _, _) => const Icon(
                 Icons.auto_awesome,
                 color: Colors.white,
                 size: 44,
@@ -194,39 +199,39 @@ class _LoginPageState extends State<LoginPage>
           ),
         ),
       ),
-    );
+    ).animate().scale(
+          begin: const Offset(0.9, 0.9),
+          end: const Offset(1, 1),
+          duration: 600.ms,
+          curve: Curves.easeOutBack,
+        );
   }
 
   Widget _buildTabBar() {
     final colors = AppColors.of(context);
 
-    return Container(
-      height: 52,
+    return GlassCard(
+      borderRadius: AppDimens.r28,
       padding: const EdgeInsets.all(4),
-      decoration: BoxDecoration(
-        color: colors.glassWhite,
-        borderRadius: BorderRadius.circular(28),
-        border: Border.all(color: colors.borderSubtle),
-      ),
       child: TabBar(
         controller: _tabController,
         indicatorSize: TabBarIndicatorSize.tab,
         indicator: BoxDecoration(
           gradient: AppColors.primaryGradient,
-          borderRadius: BorderRadius.circular(24),
-          boxShadow: [
-            BoxShadow(
-              color: AppColors.primary.withOpacity(0.3),
-              blurRadius: 12,
-              offset: const Offset(0, 4),
-            ),
-          ],
+          borderRadius: BorderRadius.circular(AppDimens.r24),
+          boxShadow: AppShadows.glowPrimary(opacity: 0.3),
         ),
         labelColor: Colors.white,
         unselectedLabelColor: colors.textSecondary,
         dividerColor: Colors.transparent,
-        labelStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
-        unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w500, fontSize: 15),
+        labelStyle: const TextStyle(
+          fontWeight: FontWeight.w600,
+          fontSize: 15,
+        ),
+        unselectedLabelStyle: const TextStyle(
+          fontWeight: FontWeight.w500,
+          fontSize: 15,
+        ),
         tabs: const [
           Tab(text: '登录'),
           Tab(text: '注册'),
@@ -241,27 +246,14 @@ class _LoginPageState extends State<LoginPage>
     required IconData icon,
     bool obscureText = false,
   }) {
-    final colors = AppColors.of(context);
-
-    return Container(
-      decoration: BoxDecoration(
-        color: colors.glassWhite,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: colors.borderSubtle),
-      ),
-      child: TextField(
-        controller: controller,
-        obscureText: obscureText,
-        style: TextStyle(color: colors.text, fontSize: 15),
-        decoration: InputDecoration(
-          hintText: hint,
-          prefixIcon: Icon(icon, color: colors.textTertiary, size: 20),
-          filled: false,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-          border: InputBorder.none,
-          enabledBorder: InputBorder.none,
-          focusedBorder: InputBorder.none,
-        ),
+    return BdxInput(
+      controller: controller,
+      hintText: hint,
+      obscureText: obscureText,
+      prefix: Icon(
+        icon,
+        color: AppColors.of(context).textTertiary,
+        size: AppDimens.iconMedium,
       ),
     );
   }
@@ -270,44 +262,21 @@ class _LoginPageState extends State<LoginPage>
     return BlocBuilder<AuthBloc, AuthState>(
       builder: (context, state) {
         final isLoading = state is AuthLoading;
-        return GestureDetector(
+        return BdxButton(
+          text: _tabController.index == 0 ? '登录' : '注册',
+          expanded: true,
+          enabled: !isLoading,
           onTap: isLoading ? null : _submit,
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            padding: const EdgeInsets.symmetric(vertical: 16),
-            decoration: BoxDecoration(
-              gradient: isLoading ? null : AppColors.primaryGradient,
-              color: isLoading ? AppColors.of(context).buttonOverlay : null,
-              borderRadius: BorderRadius.circular(28),
-              boxShadow: [
-                BoxShadow(
-                  color: AppColors.primary.withOpacity(0.35),
-                  blurRadius: 24,
-                  offset: const Offset(0, 10),
-                ),
-              ],
-            ),
-            child: Center(
-              child: isLoading
-                  ? const SizedBox(
-                      width: 22,
-                      height: 22,
-                      child: CircularProgressIndicator(
-                        color: Colors.white,
-                        strokeWidth: 2.5,
-                      ),
-                    )
-                  : Text(
-                      _tabController.index == 0 ? '登录' : '注册',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        letterSpacing: 0.8,
-                      ),
-                    ),
-            ),
-          ),
+          child: isLoading
+              ? const SizedBox(
+                  width: 22,
+                  height: 22,
+                  child: CircularProgressIndicator(
+                    color: Colors.white,
+                    strokeWidth: 2.5,
+                  ),
+                )
+              : null,
         );
       },
     );

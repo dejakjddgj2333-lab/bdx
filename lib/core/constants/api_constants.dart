@@ -1,22 +1,22 @@
 // 应用全局接口配置
-// 如需本地开发联调，把 USE_DEV_SERVER 改成 true 即可
-const bool USE_DEV_SERVER = false;
+// 如需本地开发联调，把 useDevServer 改成 true 即可
+const bool useDevServer = false;
 
-const String DEV_BASE_URL = 'http://localhost:3002/api';
-const String DEV_WS_URL = 'ws://localhost:3002/ws/voice-call';
-const String DEV_UPLOAD_BASE_URL = 'http://localhost:3002';
+const String devBaseUrl = 'http://localhost:3002/api';
+const String devWsUrl = 'ws://localhost:3002/ws/voice-call';
+const String devUploadBaseUrl = 'http://localhost:3002';
 
-const String PROD_BASE_URL = 'https://bdxapi.com/api';
-const String PROD_WS_URL = 'wss://bdxapi.com/ws/voice-call';
-const String PROD_UPLOAD_BASE_URL = 'https://bdxapi.com';
+const String prodBaseUrl = 'https://bdxapi.com/api';
+const String prodWsUrl = 'wss://bdxapi.com/ws/voice-call';
+const String prodUploadBaseUrl = 'https://bdxapi.com';
 
 class ApiConstants {
   ApiConstants._();
 
-  static String get baseUrl => USE_DEV_SERVER ? DEV_BASE_URL : PROD_BASE_URL;
-  static String get wsUrl => USE_DEV_SERVER ? DEV_WS_URL : PROD_WS_URL;
+  static String get baseUrl => useDevServer ? devBaseUrl : prodBaseUrl;
+  static String get wsUrl => useDevServer ? devWsUrl : prodWsUrl;
   static String get uploadBaseUrl =>
-      USE_DEV_SERVER ? DEV_UPLOAD_BASE_URL : PROD_UPLOAD_BASE_URL;
+      useDevServer ? devUploadBaseUrl : prodUploadBaseUrl;
 
   // 接口路径
   static const String register = '/auth/register';

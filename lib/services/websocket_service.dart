@@ -12,6 +12,8 @@ class WebSocketService {
   WebSocketChannel? _channel;
   final _messageController = StreamController<Map<String, dynamic>>.broadcast();
   final _audioController = StreamController<List<int>>.broadcast();
+  String? _currentResponseId;
+  double _currentVadThreshold = 0.3;
 
   Stream<Map<String, dynamic>> get messageStream => _messageController.stream;
   Stream<List<int>> get audioStream => _audioController.stream;
@@ -19,6 +21,7 @@ class WebSocketService {
   WebSocketService(this._secureStorage);
 
   Future<void> connect({String? voice}) async {
+    _currentResponseId = null;
     final token = await _secureStorage.getToken();
     var url = '${ApiConstants.wsUrl}?token=$token';
     if (voice != null && voice.isNotEmpty) {
@@ -72,12 +75,28 @@ class WebSocketService {
     final type = data['type']?.toString() ?? '';
     log('收到消息类型: $type');
 
+    if (type == 'response.created') {
+      _currentResponseId = data['response_id']?.toString();
+      log('当前响应 id: $_currentResponseId');
+    } else if (type == 'response.done' ||
+        type == 'response.cancelled' ||
+        type == 'response.output_item.done') {
+      _currentResponseId = null;
+    }
+
     if (type == 'response.audio.delta') {
       final delta = data['delta']?.toString() ?? '';
       if (delta.isNotEmpty) {
-        final bytes = AudioUtils.base64ToBytes(delta);
-        log('收到 response.audio.delta, ${bytes.length} bytes');
-        _audioController.add(bytes.toList());
+        final responseId = data['response_id']?.toString();
+        if (_currentResponseId != null &&
+            responseId != null &&
+            responseId != _currentResponseId) {
+          log('忽略过期 response 音频: $responseId');
+        } else {
+          final bytes = AudioUtils.base64ToBytes(delta);
+          log('收到 response.audio.delta, ${bytes.length} bytes');
+          _audioController.add(bytes.toList());
+        }
       }
     }
 
@@ -94,9 +113,9 @@ class WebSocketService {
         'voice': voice ?? 'coral',
         'turn_detection': {
           'type': 'server_vad',
-          'threshold': 0.3,
+          'threshold': 0.4,
           'prefix_padding_ms': 300,
-          'silence_duration_ms': 800,
+          'silence_duration_ms': 1200,
         },
       },
     };
@@ -105,6 +124,10 @@ class WebSocketService {
   }
 
   void updateVadThreshold(double threshold) {
+    if ((threshold - _currentVadThreshold).abs() < 0.001) {
+      return;
+    }
+    _currentVadThreshold = threshold;
     final config = {
       'event_id': 'event_${DateTime.now().millisecondsSinceEpoch}',
       'type': 'session.update',
@@ -113,7 +136,7 @@ class WebSocketService {
           'type': 'server_vad',
           'threshold': threshold,
           'prefix_padding_ms': 300,
-          'silence_duration_ms': 800,
+          'silence_duration_ms': 1200,
         },
       },
     };
@@ -154,13 +177,14 @@ class WebSocketService {
 
   void disconnect() {
     log('WebSocket 断开');
+    _currentResponseId = null;
     _channel?.sink.close();
     _channel = null;
   }
 
+  /// 应用退出时调用。注意：当前 WebSocketService 是单例，关闭 controller 后将无法复用，
+  /// 因此这里只释放 channel；如有彻底销毁需求，请重新实例化服务。
   void dispose() {
     disconnect();
-    _messageController.close();
-    _audioController.close();
   }
 }

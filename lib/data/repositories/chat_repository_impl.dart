@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:developer';
-import 'dart:typed_data';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
@@ -230,7 +229,7 @@ class ChatRepositoryImpl implements ChatRepository {
           bytes,
           quality: 80,
         );
-        if (compressed != null && compressed.isNotEmpty) {
+        if (compressed.isNotEmpty) {
           data = compressed;
         }
       } catch (_) {

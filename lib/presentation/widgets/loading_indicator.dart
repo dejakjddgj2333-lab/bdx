@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../core/constants/app_colors.dart';
+import 'bdx/bdx_loading.dart';
 
 class LoadingIndicator extends StatelessWidget {
   final double size;
@@ -8,13 +8,6 @@ class LoadingIndicator extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: size,
-      height: size,
-      child: const CircularProgressIndicator(
-        strokeWidth: 2,
-        valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
-      ),
-    );
+    return BdxLoading(size: size);
   }
 }

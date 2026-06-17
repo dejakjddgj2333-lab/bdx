@@ -8,7 +8,10 @@ class AudioRecorderServiceImpl implements AudioRecorderService {
   Future<bool> hasPermission() async => false;
 
   @override
-  Future<void> startRecording({required Function(List<int>) onData}) async {
+  Future<void> startRecording({
+    required Function(List<int>) onData,
+    Duration dropInitial = Duration.zero,
+  }) async {
     throw UnsupportedError('当前平台不支持录音');
   }
 

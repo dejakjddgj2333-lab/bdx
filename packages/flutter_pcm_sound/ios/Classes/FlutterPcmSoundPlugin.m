@@ -30,6 +30,7 @@ typedef NS_ENUM(NSUInteger, LogLevel) {
 @property(nonatomic) NSUInteger mLastLowBufferFeed;
 @property(nonatomic) NSUInteger mLastZeroFeed;
 @property(nonatomic) bool mDidSetup;
+@property(nonatomic) BOOL mIsRunning;
 @property(nonatomic) BOOL mIsAppActive;
 @property(nonatomic) BOOL mAllowBackgroundAudio;
 @property(nonatomic) BOOL mIsRecording;
@@ -58,6 +59,7 @@ typedef NS_ENUM(NSUInteger, LogLevel) {
     instance.mLastLowBufferFeed = 0;
     instance.mLastZeroFeed = 0;
     instance.mDidSetup = false;
+    instance.mIsRunning = NO;
     instance.mIsAppActive = true;
     instance.mAllowBackgroundAudio = false;
     instance.mIsRecording = NO;
@@ -349,7 +351,13 @@ typedef NS_ENUM(NSUInteger, LogLevel) {
                 self.mTotalFeeds += 1;
             }
 
-            OSStatus status = AudioOutputUnitStart(_mAudioUnit);
+            OSStatus status = noErr;
+            if (!self.mIsRunning) {
+                status = AudioOutputUnitStart(_mAudioUnit);
+                if (status == noErr) {
+                    self.mIsRunning = YES;
+                }
+            }
             if (status != noErr) {
                 NSString* message = [NSString stringWithFormat:@"AudioOutputUnitStart failed. OSStatus: %@", @(status)];
                 result([FlutterError errorWithCode:@"AudioUnitError" message:message details:nil]);
@@ -418,7 +426,7 @@ typedef NS_ENUM(NSUInteger, LogLevel) {
                 result([FlutterError errorWithCode:@"AudioUnitError" message:message details:nil]);
                 return;
             }
-
+            self.mIsRunning = YES;
             result(@YES);
         }
         else if ([@"stopRecording" isEqualToString:call.method])
@@ -440,6 +448,11 @@ typedef NS_ENUM(NSUInteger, LogLevel) {
 #else
             result(@YES);
 #endif
+        }
+        else if ([@"clear" isEqualToString:call.method])
+        {
+            @synchronized (self.mSamples) {[self.mSamples setLength:0];}
+            result(@YES);
         }
         else if([@"release" isEqualToString:call.method])
         {
@@ -467,6 +480,7 @@ typedef NS_ENUM(NSUInteger, LogLevel) {
         AudioComponentInstanceDispose(_mAudioUnit);
         _mAudioUnit = nil;
         self.mDidSetup = false;
+        self.mIsRunning = NO;
     }
     @synchronized (self.mSamples) {
         [self.mSamples setLength:0];
@@ -495,6 +509,7 @@ typedef NS_ENUM(NSUInteger, LogLevel) {
                 NSLog(@"AudioOutputUnitStop failed. OSStatus: %@", @(status));
             } else {
                 NSLog(@"AudioUnit stopped because no more samples");
+                self.mIsRunning = NO;
             }
         }
     }

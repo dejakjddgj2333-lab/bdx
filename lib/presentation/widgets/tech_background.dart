@@ -46,13 +46,13 @@ class TechBackground extends StatelessWidget {
         Positioned(
           top: -140,
           left: -100,
-          child: _glow(AppColors.primary.withOpacity(isDark ? 0.18 : 0.10), 320),
+          child: _glow(AppColors.primary.withValues(alpha: isDark ? 0.18 : 0.10), 320),
         ),
         // 底部青色光晕
         Positioned(
           bottom: -180,
           right: -120,
-          child: _glow(AppColors.success.withOpacity(isDark ? 0.12 : 0.08), 360),
+          child: _glow(AppColors.success.withValues(alpha: isDark ? 0.12 : 0.08), 360),
         ),
         if (showGrid)
           Opacity(

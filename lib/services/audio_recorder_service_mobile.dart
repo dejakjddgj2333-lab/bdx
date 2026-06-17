@@ -18,6 +18,7 @@ class AudioRecorderServiceImpl implements AudioRecorderService {
   bool _isRecording = false;
   int _frameCount = 0;
   _Pcm16Resampler? _resampler;
+  _InitialDropper? _initialDropper;
 
   @override
   int get recordedFrameCount => _frameCount;
@@ -31,7 +32,10 @@ class AudioRecorderServiceImpl implements AudioRecorderService {
   }
 
   @override
-  Future<void> startRecording({required Function(List<int>) onData}) async {
+  Future<void> startRecording({
+    required Function(List<int>) onData,
+    Duration dropInitial = Duration.zero,
+  }) async {
     if (_isRecording) {
       log('录音已经开启，忽略重复 start');
       return;
@@ -39,7 +43,23 @@ class AudioRecorderServiceImpl implements AudioRecorderService {
 
     _frameCount = 0;
     _isRecording = true;
-    log('录音启动');
+    _initialDropper = _InitialDropper(
+      dropDuration: dropInitial,
+      sampleRate: 16000,
+      bytesPerSample: 2,
+      channels: 1,
+    );
+    log('录音启动, 丢弃前 ${dropInitial.inMilliseconds}ms');
+
+    void forward(List<int> bytes) {
+      final forwarded = _initialDropper!.consume(Uint8List.fromList(bytes));
+      if (forwarded == null || forwarded.isEmpty) return;
+      _frameCount++;
+      if (_frameCount <= 3 || _frameCount % 100 == 0) {
+        log('录音帧 #$_frameCount, 长度=${forwarded.length}');
+      }
+      onData(forwarded.toList());
+    }
 
     if (Platform.isIOS) {
       _resampler = _Pcm16Resampler(fromRate: 24000, toRate: 16000);
@@ -48,11 +68,7 @@ class AudioRecorderServiceImpl implements AudioRecorderService {
         (bytes) {
           final resampled = _resampler!.resample(bytes);
           if (resampled.isEmpty) return;
-          _frameCount++;
-          if (_frameCount <= 3 || _frameCount % 100 == 0) {
-            log('iOS 录音帧 #$_frameCount, 原始=${bytes.length}, 重采样后=${resampled.length}');
-          }
-          onData(resampled.toList());
+          forward(resampled);
         },
         onError: (e) {
           log('iOS 录音错误: $e');
@@ -81,11 +97,7 @@ class AudioRecorderServiceImpl implements AudioRecorderService {
     );
 
     _subscription = stream.listen((bytes) {
-      _frameCount++;
-      if (_frameCount <= 3 || _frameCount % 100 == 0) {
-        log('录音帧 #$_frameCount, 长度=${bytes.length}');
-      }
-      onData(bytes.toList());
+      forward(bytes);
     }, onError: (e) {
       log('录音错误: $e');
       _isRecording = false;
@@ -166,6 +178,40 @@ class _Pcm16Resampler {
 
     return output;
   }
+}
+
+/// 录音开始时的音频丢弃器。
+///
+/// 用于重新开麦后丢弃前 [dropDuration] 毫秒的音频，避免把扬声器尾音/混响
+/// 当作人声发送。
+class _InitialDropper {
+  final int _bytesPerMs;
+  int _remainingBytes;
+
+  _InitialDropper({
+    required Duration dropDuration,
+    required int sampleRate,
+    required int bytesPerSample,
+    required int channels,
+  })  : _bytesPerMs = sampleRate * channels * bytesPerSample ~/ 1000,
+        _remainingBytes = math.max(
+          0,
+          sampleRate * channels * bytesPerSample * dropDuration.inMilliseconds ~/ 1000,
+        );
+
+  /// 消费一段音频，返回应该被转发的部分；如果还在丢弃窗口内则返回 null。
+  Uint8List? consume(Uint8List input) {
+    if (_remainingBytes <= 0) return input;
+    if (input.length <= _remainingBytes) {
+      _remainingBytes -= input.length;
+      return null;
+    }
+    final forwarded = Uint8List.sublistView(input, _remainingBytes);
+    _remainingBytes = 0;
+    return forwarded;
+  }
+
+  int get remainingMilliseconds => _remainingBytes ~/ _bytesPerMs;
 }
 
 AudioRecorderService createAudioRecorderService() => AudioRecorderServiceImpl();

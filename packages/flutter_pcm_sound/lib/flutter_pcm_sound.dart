@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 import 'dart:async';
+import 'dart:developer';
 import 'dart:typed_data';
 import 'package:flutter/services.dart';
 
@@ -55,7 +56,11 @@ class FlutterPcmSound {
   /// queue 16-bit samples (little endian)
   static Future<void> feed(PcmArrayInt16 buffer) async {
     if (_needsStart && buffer.count != 0) _needsStart = false;
-    return await _invokeMethod('feed', {'buffer': buffer.bytes.buffer.asUint8List()});
+    final bytes = buffer.bytes.buffer.asUint8List(
+      buffer.bytes.offsetInBytes,
+      buffer.bytes.lengthInBytes,
+    );
+    return await _invokeMethod('feed', {'buffer': bytes});
   }
 
   /// set the preferred sample rate for the AVAudioSession (iOS only).
@@ -140,6 +145,11 @@ class FlutterPcmSound {
     return await _invokeMethod('release');
   }
 
+  /// clear the native playback buffer without releasing the AudioUnit.
+  static Future<void> clear() async {
+    return await _invokeMethod('clear');
+  }
+
   static Future<T?> _invokeMethod<T>(String method, [dynamic arguments]) async {
     if (_logLevel.index >= LogLevel.standard.index) {
       String args = '';
@@ -153,7 +163,7 @@ class FlutterPcmSound {
       } else if (arguments != null) {
         args = arguments.toString();
       }
-      print("[PCM] invoke: $method $args");
+      log("[PCM] invoke: $method $args");
     }
     return await _channel.invokeMethod(method, arguments);
   }
@@ -162,7 +172,7 @@ class FlutterPcmSound {
     if (_logLevel.index >= LogLevel.standard.index) {
       String func = '[[ ${call.method} ]]';
       String args = call.arguments.toString();
-      print("[PCM] $func $args");
+      log("[PCM] $func $args");
     }
     switch (call.method) {
       case 'OnFeedSamples':
@@ -173,7 +183,7 @@ class FlutterPcmSound {
         }
         break;
       default:
-        print('Method not implemented');
+        log('Method not implemented');
     }
   }
 }
@@ -202,12 +212,12 @@ class PcmArrayInt16 {
 
   int get count => bytes.lengthInBytes ~/ 2;
 
-  operator [](int idx) {
+  int operator [](int idx) {
     int vv = bytes.getInt16(idx * 2, Endian.host);
     return vv;
   }
 
-  operator []=(int idx, int value) {
+  void operator []=(int idx, int value) {
     return bytes.setInt16(idx * 2, value, Endian.host);
   }
 }

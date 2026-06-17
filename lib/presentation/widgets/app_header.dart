@@ -1,11 +1,14 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
-import '../../core/constants/app_colors.dart';
+import '../../../core/constants/app_colors.dart';
+import '../../../core/constants/app_dimens.dart';
 
 class AppHeader extends StatelessWidget {
   final String title;
   final Widget? leading;
   final List<Widget>? actions;
   final bool showBorder;
+  final bool useBlur;
 
   const AppHeader({
     super.key,
@@ -13,6 +16,7 @@ class AppHeader extends StatelessWidget {
     this.leading,
     this.actions,
     this.showBorder = false,
+    this.useBlur = true,
   });
 
   @override
@@ -20,12 +24,21 @@ class AppHeader extends StatelessWidget {
     final statusBarHeight = MediaQuery.of(context).padding.top;
     final colors = AppColors.of(context);
 
-    return Container(
-      padding: EdgeInsets.only(top: statusBarHeight + 8, left: 8, right: 8, bottom: 10),
+    Widget content = Container(
+      padding: EdgeInsets.only(
+        top: statusBarHeight + AppDimens.s8,
+        left: AppDimens.s8,
+        right: AppDimens.s8,
+        bottom: AppDimens.s10,
+      ),
       decoration: BoxDecoration(
-        color: colors.bg.withOpacity(0.92),
+        color: colors.bg.withValues(alpha: useBlur ? 0.82 : 0.96),
         border: showBorder
-            ? Border(bottom: BorderSide(color: colors.border.withOpacity(0.5)))
+            ? Border(
+                bottom: BorderSide(
+                  color: colors.border.withValues(alpha: 0.5),
+                ),
+              )
             : null,
       ),
       child: Row(
@@ -46,11 +59,30 @@ class AppHeader extends StatelessWidget {
             ),
           ),
           if (actions != null)
-            Row(mainAxisSize: MainAxisSize.min, children: actions!)
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                for (int i = 0; i < actions!.length; i++) ...[
+                  if (i > 0) const SizedBox(width: AppDimens.s8),
+                  actions![i],
+                ],
+              ],
+            )
           else
             const SizedBox(width: 48),
         ],
       ),
     );
+
+    if (useBlur) {
+      content = ClipRect(
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+          child: content,
+        ),
+      );
+    }
+
+    return content;
   }
 }

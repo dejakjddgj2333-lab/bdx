@@ -1,11 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 import 'package:go_router/go_router.dart';
+import 'package:liquid_pull_to_refresh/liquid_pull_to_refresh.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../core/constants/app_dimens.dart';
 import '../../../domain/entities/agent.dart';
 import '../../blocs/agent/agent_bloc.dart';
 import '../../widgets/app_header.dart';
+import '../../widgets/bdx/bdx.dart';
 import '../../widgets/loading_indicator.dart';
+import '../../widgets/tech_background.dart';
 
 class AgentListPage extends StatefulWidget {
   const AgentListPage({super.key});
@@ -45,109 +50,86 @@ class _AgentListPageState extends State<AgentListPage> {
 
     return Scaffold(
       backgroundColor: colors.bg,
-      body: Column(
-        children: [
-          AppHeader(
-            title: '智能体',
-            leading: IconButton(
-              onPressed: () => context.canPop() ? context.pop() : context.go('/'),
-              icon: Icon(Icons.arrow_back, color: colors.text),
+      body: TechBackground(
+        child: Column(
+          children: [
+            AppHeader(
+              title: '智能体',
+              leading: BdxIconButton(
+                icon: Icons.arrow_back,
+                onTap: () => context.canPop() ? context.pop() : context.go('/'),
+                backgroundColor: Colors.transparent,
+              ),
             ),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
-            child: _buildSearchField(),
-          ),
-          _buildCategoryList(),
-          Expanded(child: _buildAgentList()),
-        ],
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                AppDimens.s16,
+                AppDimens.s16,
+                AppDimens.s16,
+                AppDimens.s12,
+              ),
+              child: _buildSearchField(),
+            ),
+            _buildCategoryList(),
+            Expanded(child: _buildAgentList()),
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildSearchField() {
-    final colors = AppColors.of(context);
-
-    return Container(
-      decoration: BoxDecoration(
-        color: colors.glassWhite,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: colors.borderSubtle),
+    return BdxInput(
+      controller: _searchController,
+      hintText: '搜索智能体',
+      prefix: Icon(
+        Icons.search,
+        color: AppColors.of(context).textTertiary,
+        size: AppDimens.iconMedium,
       ),
-      child: TextField(
-        controller: _searchController,
-        onChanged: (value) => context.read<AgentBloc>().add(AgentSearchChanged(value)),
-        style: TextStyle(color: colors.text, fontSize: 14),
-        decoration: InputDecoration(
-          hintText: '搜索智能体',
-          hintStyle: TextStyle(color: colors.textTertiary),
-          prefixIcon: Icon(Icons.search, color: colors.textTertiary, size: 20),
-          suffixIcon: _searchController.text.isNotEmpty
-              ? IconButton(
-                  onPressed: () {
-                    _searchController.clear();
-                    context.read<AgentBloc>().add(const AgentSearchChanged(''));
-                    setState(() {});
-                  },
-                  icon: Icon(Icons.clear, color: colors.textTertiary, size: 20),
-                )
-              : null,
-          filled: false,
-          border: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(vertical: 14),
-        ),
-      ),
+      suffix: _searchController.text.isNotEmpty
+          ? IconButton(
+              onPressed: () {
+                _searchController.clear();
+                context.read<AgentBloc>().add(const AgentSearchChanged(''));
+                setState(() {});
+              },
+              icon: Icon(
+                Icons.clear,
+                color: AppColors.of(context).textTertiary,
+                size: AppDimens.iconMedium,
+              ),
+            )
+          : null,
+      onChanged: (value) =>
+          context.read<AgentBloc>().add(AgentSearchChanged(value)),
     );
   }
 
   Widget _buildCategoryList() {
     return BlocBuilder<AgentBloc, AgentState>(
       builder: (context, state) {
-        final colors = AppColors.of(context);
-
         if (state is AgentLoadedSuccess) {
           return SizedBox(
             height: 48,
             child: ListView.builder(
               scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 12),
+              padding: const EdgeInsets.symmetric(horizontal: AppDimens.s12),
               itemCount: state.categories.length,
               itemBuilder: (context, index) {
                 final category = state.categories[index];
                 final isSelected = category == state.selectedCategory ||
                     (state.selectedCategory.isEmpty && category == '全部');
-                return GestureDetector(
-                  onTap: () => context.read<AgentBloc>().add(AgentCategorySelected(category == '全部' ? '' : category)),
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 200),
-                    margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    decoration: BoxDecoration(
-                      gradient: isSelected ? AppColors.primaryGradient : null,
-                      color: isSelected ? null : colors.glassWhite,
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(
-                        color: isSelected ? colors.border : colors.borderSubtle,
-                      ),
-                      boxShadow: isSelected
-                          ? [
-                              BoxShadow(
-                                color: AppColors.primary.withOpacity(0.25),
-                                blurRadius: 12,
-                              ),
-                            ]
-                          : null,
-                    ),
-                    child: Center(
-                      child: Text(
-                        category,
-                        style: TextStyle(
-                          color: isSelected ? Colors.white : colors.textSecondary,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w500,
+                return Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: AppDimens.s4),
+                  child: BdxChip(
+                    label: category,
+                    selected: isSelected,
+                    onTap: () => context.read<AgentBloc>().add(
+                          AgentCategorySelected(
+                            category == '全部' ? '' : category,
+                          ),
                         ),
-                      ),
-                    ),
                   ),
                 );
               },
@@ -162,36 +144,63 @@ class _AgentListPageState extends State<AgentListPage> {
   Widget _buildAgentList() {
     return BlocBuilder<AgentBloc, AgentState>(
       builder: (context, state) {
-        final colors = AppColors.of(context);
-
         if (state is AgentLoading) {
           return const Center(child: LoadingIndicator());
         }
         if (state is AgentError) {
-          return Center(
-            child: Text(state.message, style: TextStyle(color: colors.textSecondary)),
+          return BdxEmptyState(
+            icon: Icons.error_outline,
+            title: '加载失败',
+            subtitle: state.message,
+            action: BdxButton(
+              text: '重试',
+              onTap: () => context.read<AgentBloc>().add(const AgentLoaded()),
+            ),
           );
         }
         if (state is AgentLoadedSuccess) {
           if (state.agents.isEmpty) {
-            return _buildEmptyState();
+            return const BdxEmptyState(
+              icon: Icons.smart_toy_outlined,
+              title: '暂无智能体',
+            );
           }
 
-          return ListView.builder(
-            controller: _scrollController,
-            padding: const EdgeInsets.all(16),
-            itemCount: state.agents.length + (state.hasReachedMax ? 0 : 1),
-            itemBuilder: (context, index) {
-              if (index == state.agents.length) {
-                return const Center(
-                  child: Padding(
-                    padding: EdgeInsets.all(16),
-                    child: LoadingIndicator(),
-                  ),
-                );
-              }
-              return _buildAgentCard(state.agents[index]);
+          return LiquidPullToRefresh(
+            onRefresh: () async {
+              context.read<AgentBloc>().add(const AgentLoaded());
             },
+            color: AppColors.primary,
+            backgroundColor: Colors.white,
+            height: 60,
+            showChildOpacityTransition: false,
+            child: AnimationLimiter(
+              child: ListView.builder(
+                controller: _scrollController,
+                padding: const EdgeInsets.all(AppDimens.s16),
+                itemCount: state.agents.length + (state.hasReachedMax ? 0 : 1),
+                itemBuilder: (context, index) {
+                  if (index == state.agents.length) {
+                    return const Center(
+                      child: Padding(
+                        padding: EdgeInsets.all(AppDimens.s16),
+                        child: LoadingIndicator(),
+                      ),
+                    );
+                  }
+                  return AnimationConfiguration.staggeredList(
+                    position: index,
+                    duration: const Duration(milliseconds: 375),
+                    child: SlideAnimation(
+                      verticalOffset: 30,
+                      child: FadeInAnimation(
+                        child: _buildAgentCard(state.agents[index]),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
           );
         }
         return const SizedBox.shrink();
@@ -199,68 +208,23 @@ class _AgentListPageState extends State<AgentListPage> {
     );
   }
 
-  Widget _buildEmptyState() {
-    final colors = AppColors.of(context);
-
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            width: 80,
-            height: 80,
-            decoration: BoxDecoration(
-              color: colors.glassWhite,
-              borderRadius: BorderRadius.circular(24),
-            ),
-            child: Icon(Icons.smart_toy_outlined, color: colors.textTertiary, size: 36),
-          ),
-          const SizedBox(height: 16),
-          Text(
-            '暂无智能体',
-            style: TextStyle(color: colors.text, fontSize: 16, fontWeight: FontWeight.w600),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildAgentCard(Agent agent) {
     final colors = AppColors.of(context);
 
-    return GestureDetector(
+    return PressScale(
       onTap: () => context.push('/chat/detail?agentId=${agent.id}'),
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 12),
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: colors.glassWhite,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: colors.borderSubtle),
-        ),
+      child: GlassCard(
+        margin: const EdgeInsets.only(bottom: AppDimens.s12),
+        padding: AppDimens.listItemPadding,
         child: Row(
           children: [
-            Container(
-              width: 56,
-              height: 56,
-              decoration: BoxDecoration(
-                gradient: AppColors.primaryGradient,
-                borderRadius: BorderRadius.circular(18),
-                boxShadow: [
-                  BoxShadow(
-                    color: AppColors.primary.withOpacity(0.2),
-                    blurRadius: 12,
-                  ),
-                ],
-              ),
-              child: agent.avatar != null
-                  ? ClipRRect(
-                      borderRadius: BorderRadius.circular(18),
-                      child: Image.network(agent.avatar!, fit: BoxFit.cover),
-                    )
-                  : const Icon(Icons.smart_toy, color: Colors.white),
+            BdxAvatar(
+              imageUrl: agent.avatar,
+              icon: Icons.smart_toy,
+              size: AppDimens.avatarLarge,
+              borderRadius: AppDimens.r18,
             ),
-            const SizedBox(width: 16),
+            const SizedBox(width: AppDimens.s16),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -273,15 +237,21 @@ class _AgentListPageState extends State<AgentListPage> {
                       fontWeight: FontWeight.w600,
                     ),
                   ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: AppDimens.s4),
                   Text(
                     agent.category ?? '',
-                    style: const TextStyle(color: AppColors.primaryLight, fontSize: 12),
+                    style: const TextStyle(
+                      color: AppColors.primaryLight,
+                      fontSize: 12,
+                    ),
                   ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: AppDimens.s4),
                   Text(
                     agent.description ?? '',
-                    style: TextStyle(color: colors.textSecondary, fontSize: 13),
+                    style: TextStyle(
+                      color: colors.textSecondary,
+                      fontSize: 13,
+                    ),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),

@@ -2,16 +2,21 @@ import 'dart:async';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
-import 'package:flutter_pcm_sound/flutter_pcm_sound.dart';
 import 'package:permission_handler/permission_handler.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../core/constants/app_dimens.dart';
+import '../../../core/constants/app_shadows.dart';
+import '../../../core/constants/app_text_styles.dart';
+import '../../../core/utils/bdx_animations.dart';
 import '../../../injection.dart';
 import '../../../services/audio_recorder_service.dart';
-import '../../../services/websocket_service.dart';
 import '../../blocs/auth/auth_bloc.dart';
 import '../../blocs/voice_call/voice_call_bloc.dart';
+import '../../widgets/bdx/bdx.dart';
+import '../../widgets/tech_background.dart';
 
 class VoiceCallPage extends StatefulWidget {
   const VoiceCallPage({super.key});
@@ -24,9 +29,7 @@ class _VoiceCallPageState extends State<VoiceCallPage>
     with SingleTickerProviderStateMixin, WidgetsBindingObserver {
   late AnimationController _waveController;
   Timer? _durationTimer;
-  Timer? _debugTimer;
   bool _microphoneDenied = false;
-  String _debugInfo = '';
 
   @override
   void initState() {
@@ -52,11 +55,8 @@ class _VoiceCallPageState extends State<VoiceCallPage>
       return;
     }
 
-    // iOS：用 flutter_pcm_sound 自己的 AVAudioSession 申请麦克风权限
     if (Platform.isIOS) {
-      debugPrint('VoiceCall: iOS 申请麦克风权限...');
       final granted = await getIt<AudioRecorderService>().hasPermission();
-      debugPrint('VoiceCall: iOS 麦克风权限 = $granted');
       if (!mounted) return;
       if (granted) {
         setState(() => _microphoneDenied = false);
@@ -68,10 +68,7 @@ class _VoiceCallPageState extends State<VoiceCallPage>
       return;
     }
 
-    // Android：继续用 permission_handler
-    debugPrint('VoiceCall: 检查麦克风权限状态...');
     final current = await Permission.microphone.status;
-    debugPrint('VoiceCall: 当前麦克风权限状态 = $current');
     if (!mounted) return;
     if (current.isGranted) {
       setState(() => _microphoneDenied = false);
@@ -84,9 +81,7 @@ class _VoiceCallPageState extends State<VoiceCallPage>
       return;
     }
 
-    debugPrint('VoiceCall: 请求麦克风权限...');
     final status = await Permission.microphone.request();
-    debugPrint('VoiceCall: 请求后麦克风权限状态 = $status');
     if (!mounted) return;
     if (status.isGranted) {
       setState(() => _microphoneDenied = false);
@@ -100,30 +95,8 @@ class _VoiceCallPageState extends State<VoiceCallPage>
   void _startDurationTimer() {
     _durationTimer?.cancel();
     _durationTimer = Timer.periodic(const Duration(seconds: 1), (_) {
-      context.read<VoiceCallBloc>().add(const VoiceCallDurationTick());
-    });
-    _startDebugTimer();
-  }
-
-  void _startDebugTimer() {
-    _debugTimer?.cancel();
-    _debugTimer = Timer.periodic(const Duration(seconds: 1), (_) async {
       if (!mounted) return;
-      final recorder = getIt<AudioRecorderService>();
-      final ws = getIt<WebSocketService>();
-      final state = context.read<VoiceCallBloc>().state;
-      String sessionInfo = '';
-      if (Platform.isIOS) {
-        try {
-          final info = await FlutterPcmSound.getIosAudioSessionInfo();
-          sessionInfo = '\n${info['mode'] ?? '-'} ${info['sampleRate'] ?? '-'}Hz in=${info['inputAvailable'] ?? '-'}';
-        } catch (_) {}
-      }
-      setState(() {
-        _debugInfo = 'status=${state.status.name}\n'
-            'rec=${recorder.recordedFrameCount}  sent=${ws.audioSendCount}\n'
-            'err=${state.error ?? "-"}$sessionInfo';
-      });
+      context.read<VoiceCallBloc>().add(const VoiceCallDurationTick());
     });
   }
 
@@ -132,7 +105,6 @@ class _VoiceCallPageState extends State<VoiceCallPage>
     WidgetsBinding.instance.removeObserver(this);
     _waveController.dispose();
     _durationTimer?.cancel();
-    _debugTimer?.cancel();
     super.dispose();
   }
 
@@ -149,112 +121,94 @@ class _VoiceCallPageState extends State<VoiceCallPage>
 
     return Scaffold(
       backgroundColor: colors.bg,
-      body: BlocConsumer<VoiceCallBloc, VoiceCallState>(
-        listener: (context, state) {
-          if (state.status == CallStatus.idle) {
-            _durationTimer?.cancel();
-          }
-        },
-        builder: (context, state) {
-          if (_microphoneDenied) {
-            return SafeArea(child: _buildPermissionDenied());
-          }
-          return SafeArea(
-            child: Column(
-              children: [
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: IconButton(
-                    onPressed: () => _goBack(context),
-                    icon: Icon(Icons.arrow_back, color: colors.text),
-                  ),
-                ),
-                const Spacer(),
-                _buildAvatar(state),
-                const SizedBox(height: 32),
-                Text(
-                  state.statusText,
-                  style: TextStyle(
-                    color: colors.text,
-                    fontSize: 22,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  state.formattedDuration,
-                  style: TextStyle(
-                    color: colors.textSecondary,
-                    fontSize: 16,
-                  ),
-                ),
-                const SizedBox(height: 24),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: colors.glassWhite,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(
-                    _debugInfo,
-                    style: TextStyle(
-                      color: colors.textSecondary,
-                      fontSize: 11,
-                      fontFamily: 'monospace',
-                      height: 1.4,
+      body: TechBackground(
+        child: BlocConsumer<VoiceCallBloc, VoiceCallState>(
+          listener: (context, state) {
+            if (state.status == CallStatus.idle) {
+              _durationTimer?.cancel();
+            }
+          },
+          builder: (context, state) {
+            if (_microphoneDenied) {
+              return SafeArea(child: _buildPermissionDenied());
+            }
+            return SafeArea(
+              child: Column(
+                children: [
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: BdxIconButton(
+                      icon: Icons.arrow_back,
+                      onTap: () => _goBack(context),
+                      backgroundColor: Colors.transparent,
                     ),
-                    textAlign: TextAlign.center,
                   ),
-                ),
-                const Spacer(),
-                _buildWaveAnimation(),
-                const SizedBox(height: 40),
-                _buildControls(state),
-                const SizedBox(height: 40),
-              ],
-            ),
-          );
-        },
+                  const Spacer(),
+                  _buildAvatar(state),
+                  const SizedBox(height: AppDimens.s32),
+                  BdxAnimations.breathe(
+                    Text(
+                      state.statusText,
+                      style: AppTextStyles.headline(context),
+                    ),
+                    minOpacity: 0.75,
+                    maxOpacity: 1.0,
+                    durationMs: state.status == CallStatus.listening
+                        ? 1200
+                        : 2500,
+                  ),
+                  const SizedBox(height: AppDimens.s12),
+                  Text(
+                    state.formattedDuration,
+                    style: AppTextStyles.body(context),
+                  ),
+                  const SizedBox(height: AppDimens.s24),
+                  const Spacer(),
+                  _buildWaveAnimation(state),
+                  const SizedBox(height: AppDimens.s40),
+                  _buildControls(state),
+                  const SizedBox(height: AppDimens.s40),
+                ],
+              ),
+            );
+          },
+        ),
       ),
     );
   }
 
   Widget _buildAvatar(VoiceCallState state) {
+    final isActive = state.status == CallStatus.speaking ||
+        state.status == CallStatus.listening;
+
     return AnimatedBuilder(
       animation: _waveController,
       builder: (context, child) {
-        final scale =
-            state.status == CallStatus.speaking ||
-                state.status == CallStatus.listening
-            ? 1.0 + _waveController.value * 0.05
-            : 1.0;
+        final scale = isActive ? 1.0 + _waveController.value * 0.05 : 1.0;
         return Transform.scale(
           scale: scale,
           child: Container(
-            width: 140,
-            height: 140,
+            width: 150,
+            height: 150,
             decoration: BoxDecoration(
               gradient: AppColors.primaryGradient,
-              borderRadius: BorderRadius.circular(40),
-              boxShadow: [
-                BoxShadow(
-                  color: AppColors.primary.withOpacity(0.4),
-                  blurRadius: 40,
-                  spreadRadius: 8,
-                ),
-              ],
+              borderRadius: BorderRadius.circular(AppDimens.r40),
+              boxShadow: AppShadows.avatarGlow(
+                AppColors.primary,
+                opacity: isActive ? 0.55 : 0.35,
+              ),
             ),
             child: ClipRRect(
-              borderRadius: BorderRadius.circular(40),
+              borderRadius: BorderRadius.circular(AppDimens.r40),
               child: Padding(
-                padding: const EdgeInsets.all(20),
+                padding: const EdgeInsets.all(AppDimens.s24),
                 child: Image.asset(
                   'assets/images/logo.png',
                   fit: BoxFit.contain,
-                  errorBuilder: (_, __, ___) => const Icon(
+                  errorBuilder: (_, _, _) => const Icon(
                     Icons.auto_awesome,
                     color: Colors.white,
-                    size: 60,
+                    size: 64,
                   ),
                 ),
               ),
@@ -265,7 +219,10 @@ class _VoiceCallPageState extends State<VoiceCallPage>
     );
   }
 
-  Widget _buildWaveAnimation() {
+  Widget _buildWaveAnimation(VoiceCallState state) {
+    final isActive = state.status == CallStatus.speaking ||
+        state.status == CallStatus.listening;
+
     return SizedBox(
       height: 70,
       child: AnimatedBuilder(
@@ -277,14 +234,26 @@ class _VoiceCallPageState extends State<VoiceCallPage>
             children: List.generate(5, (index) {
               final delay = index * 0.2;
               final value = (_waveController.value + delay) % 1.0;
-              final height = 20 + value * 40;
+              final baseHeight = isActive ? 20.0 : 10.0;
+              final amplitude = isActive ? 40.0 : 15.0;
+              final height = baseHeight + value * amplitude;
               return Container(
-                margin: const EdgeInsets.symmetric(horizontal: 4),
+                margin: const EdgeInsets.symmetric(horizontal: AppDimens.s4),
                 width: 6,
                 height: height,
                 decoration: BoxDecoration(
-                  color: AppColors.primaryLight.withOpacity(0.6 + value * 0.4),
+                  color: AppColors.primaryLight.withValues(
+                    alpha: 0.5 + value * 0.5,
+                  ),
                   borderRadius: BorderRadius.circular(3),
+                  boxShadow: isActive
+                      ? [
+                          BoxShadow(
+                            color: AppColors.primaryLight.withValues(alpha: 0.4),
+                            blurRadius: 8,
+                          ),
+                        ]
+                      : null,
                 ),
               );
             }),
@@ -295,7 +264,6 @@ class _VoiceCallPageState extends State<VoiceCallPage>
   }
 
   Widget _buildControls(VoiceCallState state) {
-    // 通话已结束，显示重新接通按钮
     if (state.status == CallStatus.idle) {
       return _buildControlButton(
         icon: Icons.phone_in_talk,
@@ -310,10 +278,12 @@ class _VoiceCallPageState extends State<VoiceCallPage>
       children: [
         _buildControlButton(
           icon: state.isMuted ? Icons.mic_off : Icons.mic,
-          label: state.isMuted ? '静音' : '静音',
+          label: state.isMuted ? '已静音' : '静音',
           isActive: state.isMuted,
-          onTap: () =>
-              context.read<VoiceCallBloc>().add(const VoiceCallToggleMute()),
+          onTap: () {
+            HapticFeedback.lightImpact();
+            context.read<VoiceCallBloc>().add(const VoiceCallToggleMute());
+          },
         ),
         _buildControlButton(
           icon: Icons.call_end,
@@ -325,8 +295,10 @@ class _VoiceCallPageState extends State<VoiceCallPage>
           icon: state.isSpeaker ? Icons.volume_up : Icons.hearing,
           label: state.isSpeaker ? '免提' : '听筒',
           isActive: state.isSpeaker,
-          onTap: () =>
-              context.read<VoiceCallBloc>().add(const VoiceCallToggleSpeaker()),
+          onTap: () {
+            HapticFeedback.lightImpact();
+            context.read<VoiceCallBloc>().add(const VoiceCallToggleSpeaker());
+          },
         ),
       ],
     );
@@ -340,26 +312,37 @@ class _VoiceCallPageState extends State<VoiceCallPage>
     bool isActive = false,
   }) {
     final colors = AppColors.of(context);
+    final isHangup = color == AppColors.pink;
+    final backgroundColor = color ??
+        (isActive ? AppColors.primary : colors.glassWhite);
 
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        GestureDetector(
+        PressScale(
           onTap: onTap,
+          scale: 0.92,
           child: Container(
             width: 64,
             height: 64,
             decoration: BoxDecoration(
-              color:
-                  color ??
-                  (isActive ? AppColors.primary : colors.glassWhite),
+              color: backgroundColor,
               shape: BoxShape.circle,
-              border: Border.all(color: colors.borderSubtle),
+              border: Border.all(
+                color: isHangup || isActive
+                    ? Colors.transparent
+                    : colors.borderSubtle,
+              ),
+              boxShadow: isHangup
+                  ? AppShadows.glowAccent(opacity: 0.4)
+                  : isActive
+                      ? AppShadows.glowPrimary(opacity: 0.35)
+                      : null,
             ),
             child: Icon(icon, color: Colors.white, size: 28),
           ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: AppDimens.s8),
         Text(
           label,
           style: TextStyle(color: colors.textSecondary, fontSize: 12),
@@ -369,10 +352,10 @@ class _VoiceCallPageState extends State<VoiceCallPage>
   }
 
   void _hangup(BuildContext context) {
+    HapticFeedback.mediumImpact();
     _durationTimer?.cancel();
     setState(() => _microphoneDenied = false);
     context.read<VoiceCallBloc>().add(const VoiceCallHangup());
-    // 挂断后停留在当前页，不返回上一页
   }
 
   void _goBack(BuildContext context) {
@@ -393,18 +376,26 @@ class _VoiceCallPageState extends State<VoiceCallPage>
         children: [
           SafeArea(
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 32),
+              padding: const EdgeInsets.symmetric(horizontal: AppDimens.s32),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.mic_off, color: colors.textSecondary, size: 64),
-                  const SizedBox(height: 16),
+                  GlassCard(
+                    borderRadius: AppDimens.r24,
+                    padding: const EdgeInsets.all(AppDimens.s24),
+                    child: Icon(
+                      Icons.mic_off,
+                      color: colors.textSecondary,
+                      size: 48,
+                    ),
+                  ),
+                  const SizedBox(height: AppDimens.s20),
                   Text(
                     '需要麦克风权限才能进行语音通话',
                     textAlign: TextAlign.center,
-                    style: TextStyle(color: colors.text, fontSize: 16, height: 1.5),
+                    style: AppTextStyles.title(context),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: AppDimens.s8),
                   FutureBuilder<PermissionStatus>(
                     future: Permission.microphone.status,
                     builder: (context, snapshot) {
@@ -422,52 +413,22 @@ class _VoiceCallPageState extends State<VoiceCallPage>
                                   ? '权限已被永久拒绝，请前往系统设置手动开启'
                                   : '请点击下方按钮授权麦克风权限',
                               textAlign: TextAlign.center,
-                              style: TextStyle(
-                                color: colors.textSecondary,
-                                fontSize: 13,
-                                height: 1.4,
-                              ),
+                              style: AppTextStyles.bodySmall(context),
                             ),
-                          const SizedBox(height: 24),
-                          if (canRequest)
-                            ElevatedButton(
-                              onPressed: _checkPermissionAndStart,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: AppColors.primary,
-                                foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 32,
-                                  vertical: 12,
-                                ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(24),
-                                ),
-                              ),
-                              child: const Text('重新请求权限'),
-                            )
-                          else
-                            ElevatedButton(
-                              onPressed: openAppSettings,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: AppColors.primary,
-                                foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 32,
-                                  vertical: 12,
-                                ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(24),
-                                ),
-                              ),
-                              child: const Text('去系统设置开启'),
-                            ),
-                          const SizedBox(height: 12),
-                          TextButton(
-                            onPressed: () => _checkPermissionAndStart(),
-                            child: Text(
-                              '已开启，重新检测',
-                              style: TextStyle(color: colors.textSecondary),
-                            ),
+                          const SizedBox(height: AppDimens.s24),
+                          BdxButton(
+                            text: canRequest ? '重新请求权限' : '去系统设置开启',
+                            expanded: true,
+                            onTap: canRequest
+                                ? _checkPermissionAndStart
+                                : openAppSettings,
+                          ),
+                          const SizedBox(height: AppDimens.s12),
+                          BdxButton(
+                            text: '已开启，重新检测',
+                            type: BdxButtonType.ghost,
+                            expanded: true,
+                            onTap: _checkPermissionAndStart,
                           ),
                         ],
                       );
@@ -480,9 +441,10 @@ class _VoiceCallPageState extends State<VoiceCallPage>
           SafeArea(
             child: Align(
               alignment: Alignment.topLeft,
-              child: IconButton(
-                onPressed: () => _goBack(context),
-                icon: Icon(Icons.arrow_back, color: colors.text),
+              child: BdxIconButton(
+                icon: Icons.arrow_back,
+                onTap: () => _goBack(context),
+                backgroundColor: Colors.transparent,
               ),
             ),
           ),

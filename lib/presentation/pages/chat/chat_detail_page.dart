@@ -1,15 +1,24 @@
 import 'dart:async';
+import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:shimmer/shimmer.dart';
 import '../../../core/constants/api_constants.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../core/constants/app_dimens.dart';
+import '../../../core/constants/app_shadows.dart';
+import '../../../core/constants/app_text_styles.dart';
+import '../../../core/utils/bdx_animations.dart';
 import '../../blocs/chat_detail/chat_detail_bloc.dart';
 import '../../widgets/ai_message.dart';
 import '../../widgets/app_header.dart';
+import '../../widgets/bdx/bdx.dart';
 import '../../widgets/model_picker.dart';
+import '../../widgets/tech_background.dart';
 import '../../widgets/user_message.dart';
 
 class ChatDetailPage extends StatefulWidget {
@@ -32,6 +41,7 @@ class _ChatDetailPageState extends State<ChatDetailPage>
     with TickerProviderStateMixin {
   final _textController = TextEditingController();
   final _scrollController = ScrollController();
+  final _focusNode = FocusNode();
   late final AnimationController _dotController;
 
   @override
@@ -49,7 +59,9 @@ class _ChatDetailPageState extends State<ChatDetailPage>
     if (widget.initialContent != null && widget.initialContent!.isNotEmpty) {
       _textController.text = Uri.decodeComponent(widget.initialContent!);
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        context.read<ChatDetailBloc>().add(ChatDetailMessageSent(_textController.text));
+        context.read<ChatDetailBloc>().add(
+              ChatDetailMessageSent(_textController.text),
+            );
         _textController.clear();
       });
     }
@@ -60,6 +72,7 @@ class _ChatDetailPageState extends State<ChatDetailPage>
     _dotController.dispose();
     _textController.dispose();
     _scrollController.dispose();
+    _focusNode.dispose();
     super.dispose();
   }
 
@@ -80,47 +93,59 @@ class _ChatDetailPageState extends State<ChatDetailPage>
     return Scaffold(
       backgroundColor: colors.bg,
       resizeToAvoidBottomInset: true,
-      body: BlocConsumer<ChatDetailBloc, ChatDetailState>(
-        listener: (context, state) {
-          WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
-        },
-        builder: (context, state) {
-          final currentModelName = state.models
-                  .firstWhere(
-                    (m) => m['id']?.toString() == state.currentModel,
-                    orElse: () => {'name': '选择模型'},
-                  )['name']
-                  ?.toString() ??
-              '选择模型';
+      body: TechBackground(
+        child: BlocConsumer<ChatDetailBloc, ChatDetailState>(
+          listener: (context, state) {
+            if (state.error != null) {
+              BdxToast.show(
+                context,
+                message: state.error!,
+                icon: Icons.error_outline,
+              );
+            }
+            WidgetsBinding.instance
+                .addPostFrameCallback((_) => _scrollToBottom());
+          },
+          builder: (context, state) {
+            final currentModelName = state.models
+                    .firstWhere(
+                      (m) => m['id']?.toString() == state.currentModel,
+                      orElse: () => {'name': '选择模型'},
+                    )['name']
+                    ?.toString() ??
+                '选择模型';
 
-          final supportsVision = state.models
-                  .firstWhere(
-                    (m) => m['id']?.toString() == state.currentModel,
-                    orElse: () => {'supportsVision': false},
-                  )['supportsVision'] as bool? ??
-              false;
+            final supportsVision = state.models
+                    .firstWhere(
+                      (m) => m['id']?.toString() == state.currentModel,
+                      orElse: () => {'supportsVision': false},
+                    )['supportsVision'] as bool? ??
+                false;
 
-          return Column(
-            children: [
-              AppHeader(
-                title: '',
-                leading: IconButton(
-                  onPressed: () => context.canPop() ? context.pop() : context.go('/'),
-                  icon: Icon(Icons.arrow_back, color: colors.text),
-                ),
-                actions: [
-                  _buildModelChip(currentModelName),
-                  IconButton(
-                    onPressed: () => _showMoreActions(context),
-                    icon: Icon(Icons.more_vert, color: colors.text),
+            return Column(
+              children: [
+                AppHeader(
+                  title: '',
+                  leading: BdxIconButton(
+                    icon: Icons.arrow_back,
+                    onTap: () => context.canPop() ? context.pop() : context.go('/'),
+                    backgroundColor: Colors.transparent,
                   ),
-                ],
-              ),
-              Expanded(child: _buildMessageList(state)),
-              _buildInputArea(state, supportsVision),
-            ],
-          );
-        },
+                  actions: [
+                    _buildModelChip(currentModelName),
+                    BdxIconButton(
+                      icon: Icons.more_vert,
+                      onTap: () => _showMoreActions(context),
+                      backgroundColor: Colors.transparent,
+                    ),
+                  ],
+                ),
+                Expanded(child: _buildMessageList(state)),
+                _buildInputArea(state, supportsVision),
+              ],
+            );
+          },
+        ),
       ),
     );
   }
@@ -128,14 +153,13 @@ class _ChatDetailPageState extends State<ChatDetailPage>
   Widget _buildModelChip(String name) {
     final colors = AppColors.of(context);
 
-    return GestureDetector(
+    return PressScale(
       onTap: () => _showModelPicker(context),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        decoration: BoxDecoration(
-          color: colors.glassWhite,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: colors.borderSubtle),
+      child: GlassCard(
+        borderRadius: AppDimens.r16,
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppDimens.s12,
+          vertical: AppDimens.s6,
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -151,7 +175,11 @@ class _ChatDetailPageState extends State<ChatDetailPage>
             const SizedBox(width: 6),
             Text(
               name,
-              style: TextStyle(color: colors.text, fontSize: 13, fontWeight: FontWeight.w500),
+              style: TextStyle(
+                color: colors.text,
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+              ),
             ),
             Icon(Icons.arrow_drop_down, color: colors.textTertiary, size: 18),
           ],
@@ -173,7 +201,7 @@ class _ChatDetailPageState extends State<ChatDetailPage>
 
     return ListView.builder(
       controller: _scrollController,
-      padding: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.only(bottom: AppDimens.s16),
       itemCount: messages.length + (state.isSending ? 1 : 0),
       itemBuilder: (context, index) {
         if (index == messages.length) {
@@ -195,20 +223,41 @@ class _ChatDetailPageState extends State<ChatDetailPage>
       baseColor: colors.glassWhite,
       highlightColor: colors.borderSubtle,
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: AppDimens.pagePadding,
         child: Column(
           children: [
             Row(
               children: [
-                Container(width: 36, height: 36, decoration: BoxDecoration(color: colors.text, shape: BoxShape.circle)),
+                Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: colors.text,
+                    shape: BoxShape.circle,
+                  ),
+                ),
                 const SizedBox(width: 12),
-                Container(width: 200, height: 60, decoration: BoxDecoration(color: colors.text, borderRadius: BorderRadius.circular(12))),
+                Container(
+                  width: 200,
+                  height: 60,
+                  decoration: BoxDecoration(
+                    color: colors.text,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
               ],
             ),
             const SizedBox(height: 16),
             Align(
               alignment: Alignment.centerRight,
-              child: Container(width: 160, height: 40, decoration: BoxDecoration(color: colors.text, borderRadius: BorderRadius.circular(12))),
+              child: Container(
+                width: 160,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: colors.text,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
             ),
           ],
         ),
@@ -217,57 +266,56 @@ class _ChatDetailPageState extends State<ChatDetailPage>
   }
 
   Widget _buildWelcome(ChatDetailState state) {
-    final colors = AppColors.of(context);
-
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 72,
-            height: 72,
-            decoration: BoxDecoration(
-              gradient: AppColors.primaryGradient,
-              borderRadius: BorderRadius.circular(22),
-              boxShadow: [
-                BoxShadow(
-                  color: AppColors.primary.withOpacity(0.3),
-                  blurRadius: 24,
-                  spreadRadius: 2,
-                ),
-              ],
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(22),
-              child: Padding(
-                padding: const EdgeInsets.all(14),
-                child: Image.asset(
-                  'assets/images/logo.png',
-                  fit: BoxFit.contain,
-                  errorBuilder: (_, __, ___) => const Icon(Icons.auto_awesome, color: Colors.white, size: 32),
+    return BdxAnimations.fadeSlideIn(
+      SingleChildScrollView(
+        padding: AppDimens.pagePadding,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: 72,
+              height: 72,
+              decoration: BoxDecoration(
+                gradient: AppColors.primaryGradient,
+                borderRadius: BorderRadius.circular(AppDimens.r22),
+                boxShadow: AppShadows.glowPrimary(opacity: 0.3),
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(AppDimens.r22),
+                child: Padding(
+                  padding: const EdgeInsets.all(14),
+                  child: Image.asset(
+                    'assets/images/logo.png',
+                    fit: BoxFit.contain,
+                    errorBuilder: (_, _, _) => const Icon(
+                      Icons.auto_awesome,
+                      color: Colors.white,
+                      size: 32,
+                    ),
+                  ),
                 ),
               ),
             ),
-          ),
-          const SizedBox(height: 24),
-          Text(
-            '嗨，今天要和北斗星AI一起做什么？',
-            style: TextStyle(
-              color: colors.text,
-              fontSize: 24,
-              fontWeight: FontWeight.w600,
-              height: 1.3,
+            const SizedBox(height: AppDimens.s24),
+            Text(
+              '嗨，今天要和北斗星AI一起做什么？',
+              style: AppTextStyles.headline(context),
             ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            '选一个话题开始吧',
-            style: TextStyle(color: colors.textSecondary, fontSize: 14),
-          ),
-          const SizedBox(height: 28),
-          ...state.suggestions.map((s) => _buildSuggestionItem(s)),
-        ],
+            const SizedBox(height: AppDimens.s8),
+            Text(
+              '选一个话题开始吧',
+              style: AppTextStyles.bodySmall(context),
+            ),
+            const SizedBox(height: AppDimens.s28),
+            ...state.suggestions.asMap().entries.map(
+                  (e) => BdxAnimations.fadeSlideIn(
+                    _buildSuggestionItem(e.value),
+                    delayMs: e.key * 80,
+                    beginY: 0.08,
+                  ),
+                ),
+          ],
+        ),
       ),
     );
   }
@@ -276,24 +324,28 @@ class _ChatDetailPageState extends State<ChatDetailPage>
     final colors = AppColors.of(context);
     final title = suggestion['title']?.toString() ?? '';
     final prompt = suggestion['prompt']?.toString() ?? '';
-    return GestureDetector(
+
+    return PressScale(
       onTap: () {
         _textController.text = prompt;
+        _focusNode.requestFocus();
       },
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 12),
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-        decoration: BoxDecoration(
-          color: colors.glassWhite,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: colors.borderSubtle),
+      child: GlassCard(
+        margin: const EdgeInsets.only(bottom: AppDimens.s12),
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppDimens.s20,
+          vertical: AppDimens.s16,
         ),
         child: Row(
           children: [
             Expanded(
               child: Text(
                 title,
-                style: TextStyle(color: colors.text, fontSize: 14, fontWeight: FontWeight.w500),
+                style: TextStyle(
+                  color: colors.text,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                ),
               ),
             ),
             Icon(Icons.arrow_forward_ios, color: colors.textTertiary, size: 14),
@@ -304,147 +356,160 @@ class _ChatDetailPageState extends State<ChatDetailPage>
   }
 
   Widget _buildLoadingBubble() {
-    final colors = AppColors.of(context);
-
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+      padding: const EdgeInsets.symmetric(
+        vertical: AppDimens.s8,
+        horizontal: AppDimens.s16,
+      ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            width: 36,
-            height: 36,
-            decoration: const BoxDecoration(
-              gradient: AppColors.primaryGradient,
-              borderRadius: BorderRadius.all(Radius.circular(12)),
+          BdxGradientAvatar(
+            size: 36,
+            borderRadius: AppDimens.r12,
+            child: const Padding(
+              padding: EdgeInsets.all(8),
+              child: Icon(Icons.auto_awesome, color: Colors.white, size: 18),
             ),
           ),
           const SizedBox(width: 12),
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: colors.glassWhite,
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Row(
-              children: [
-                _buildDot(0),
-                const SizedBox(width: 4),
-                _buildDot(1),
-                const SizedBox(width: 4),
-                _buildDot(2),
-              ],
+          GlassCard(
+            borderRadius: AppDimens.r16,
+            padding: const EdgeInsets.all(AppDimens.s16),
+            child: BdxTypingDots(
+              dotSize: 8,
+              color: AppColors.primaryLight,
             ),
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildDot(int index) {
-    return AnimatedBuilder(
-      animation: _dotController,
-      builder: (context, child) {
-        final delay = index * 0.25;
-        final value = ((_dotController.value + delay) % 1.0);
-        final scale = 0.5 + (value < 0.5 ? value * 2 : (1 - value) * 2) * 0.6;
-        return Container(
-          width: 8 * scale,
-          height: 8 * scale,
-          decoration: const BoxDecoration(
-            color: AppColors.primaryLight,
-            shape: BoxShape.circle,
-          ),
-        );
-      },
     );
   }
 
   Widget _buildInputArea(ChatDetailState state, bool supportsVision) {
     final colors = AppColors.of(context);
+    final hasContent = _textController.text.isNotEmpty ||
+        state.pendingImages.isNotEmpty;
 
     return Container(
       padding: EdgeInsets.only(
-        left: 16,
-        right: 16,
-        top: 12,
-        // Scaffold 的 resizeToAvoidBottomInset 已经把 body 向上顶了键盘高度，
-        // 这里只需补偿底部安全区 + 固定间距，避免双重计算。
-        bottom: MediaQuery.of(context).padding.bottom + 12,
+        left: AppDimens.s16,
+        right: AppDimens.s16,
+        top: AppDimens.s12,
+        bottom: MediaQuery.of(context).padding.bottom + AppDimens.s12,
       ),
       decoration: BoxDecoration(
-        color: colors.bgElevated,
+        color: colors.bgElevated.withValues(alpha: 0.96),
+        border: Border(
+          top: BorderSide(color: colors.borderSubtle),
+        ),
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (state.pendingImages.isNotEmpty)
-            SizedBox(
-              height: 76,
-              child: ListView.builder(
-                scrollDirection: Axis.horizontal,
-                itemCount: state.pendingImages.length,
-                itemBuilder: (context, index) {
-                  return _buildPendingImage(state.pendingImages[index], index);
-                },
+      child: ClipRect(
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (state.pendingImages.isNotEmpty)
+                SizedBox(
+                  height: 76,
+                  child: ListView.builder(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: state.pendingImages.length,
+                    itemBuilder: (context, index) {
+                      return _buildPendingImage(state.pendingImages[index], index);
+                    },
+                  ),
+                ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: AppDimens.s8),
+                decoration: BoxDecoration(
+                  color: colors.glassWhite,
+                  borderRadius: BorderRadius.circular(AppDimens.r24),
+                  border: Border.all(
+                    color: _focusNode.hasFocus
+                        ? colors.border
+                        : colors.borderSubtle,
+                  ),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    if (supportsVision)
+                      BdxIconButton(
+                        icon: Icons.photo,
+                        onTap: state.isSending ? null : _pickImage,
+                        size: 40,
+                        backgroundColor: Colors.transparent,
+                        showBorder: false,
+                        iconColor: state.isSending
+                            ? colors.textTertiary
+                            : colors.textSecondary,
+                      ),
+                    Expanded(
+                      child: TextField(
+                        controller: _textController,
+                        focusNode: _focusNode,
+                        maxLines: 5,
+                        minLines: 1,
+                        textInputAction: TextInputAction.send,
+                        onSubmitted: (_) => _sendMessage(state),
+                        decoration: InputDecoration(
+                          hintText: '尽管问，带图也行',
+                          filled: false,
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: AppDimens.s12,
+                            vertical: AppDimens.s12,
+                          ),
+                          border: InputBorder.none,
+                          enabledBorder: InputBorder.none,
+                          focusedBorder: InputBorder.none,
+                          hintStyle: TextStyle(color: colors.textTertiary),
+                        ),
+                        style: TextStyle(color: colors.text),
+                        onChanged: (_) => setState(() {}),
+                      ),
+                    ),
+                    PressScale(
+                      onTap: state.isSending ? null : () => _sendMessage(state),
+                      haptic: !state.isSending,
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 200),
+                        width: 40,
+                        height: 40,
+                        margin: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          gradient: state.isSending || !hasContent
+                              ? null
+                              : AppColors.primaryGradient,
+                          color: state.isSending || !hasContent
+                              ? colors.buttonOverlay
+                              : null,
+                          shape: BoxShape.circle,
+                          boxShadow: hasContent && !state.isSending
+                              ? AppShadows.glowPrimary(opacity: 0.35)
+                              : null,
+                        ),
+                        child: Icon(
+                          Icons.arrow_upward,
+                          color: hasContent && !state.isSending
+                              ? Colors.white
+                              : colors.textTertiary,
+                          size: 20,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8),
-            decoration: BoxDecoration(
-              color: colors.glassWhite,
-              borderRadius: BorderRadius.circular(24),
-              border: Border.all(color: colors.borderSubtle),
-            ),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                if (supportsVision)
-                  IconButton(
-                    onPressed: state.isSending ? null : _pickImage,
-                    icon: Icon(Icons.photo, color: colors.textSecondary),
-                  ),
-                Expanded(
-                  child: TextField(
-                    controller: _textController,
-                    maxLines: 5,
-                    minLines: 1,
-                    textInputAction: TextInputAction.send,
-                    onSubmitted: (_) => _sendMessage(state),
-                    decoration: const InputDecoration(
-                      hintText: '尽管问，带图也行',
-                      filled: false,
-                      contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                      border: InputBorder.none,
-                      enabledBorder: InputBorder.none,
-                      focusedBorder: InputBorder.none,
-                    ),
-                    style: TextStyle(color: colors.text),
-                  ),
-                ),
-                GestureDetector(
-                  onTap: state.isSending ? null : () => _sendMessage(state),
-                  child: Container(
-                    width: 40,
-                    height: 40,
-                    margin: const EdgeInsets.all(4),
-                    decoration: BoxDecoration(
-                      gradient: state.isSending ? null : AppColors.primaryGradient,
-                      color: state.isSending ? colors.buttonOverlay : null,
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(Icons.arrow_upward, color: Colors.white, size: 20),
-                  ),
-                ),
-              ],
-            ),
+              const SizedBox(height: AppDimens.s6),
+              Text(
+                '内容由 AI 生成',
+                style: TextStyle(color: colors.textTertiary, fontSize: 11),
+              ),
+            ],
           ),
-          const SizedBox(height: 6),
-          Text(
-            '内容由 AI 生成',
-            style: TextStyle(color: colors.textTertiary, fontSize: 11),
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -458,7 +523,7 @@ class _ChatDetailPageState extends State<ChatDetailPage>
           height: 64,
           margin: const EdgeInsets.only(right: 8, top: 4, bottom: 4),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(AppDimens.r10),
             image: DecorationImage(
               image: NetworkImage(imageUrl),
               fit: BoxFit.cover,
@@ -468,8 +533,9 @@ class _ChatDetailPageState extends State<ChatDetailPage>
         Positioned(
           top: 0,
           right: 0,
-          child: GestureDetector(
-            onTap: () => context.read<ChatDetailBloc>().add(ChatDetailImageRemoved(index)),
+          child: PressScale(
+            onTap: () =>
+                context.read<ChatDetailBloc>().add(ChatDetailImageRemoved(index)),
             child: Container(
               padding: const EdgeInsets.all(2),
               decoration: const BoxDecoration(
@@ -481,14 +547,20 @@ class _ChatDetailPageState extends State<ChatDetailPage>
           ),
         ),
       ],
-    );
+    ).animate().fadeIn(duration: 200.ms).scale(
+          begin: const Offset(0.9, 0.9),
+          end: const Offset(1, 1),
+          duration: 200.ms,
+        );
   }
 
   void _sendMessage(ChatDetailState state) {
     final text = _textController.text.trim();
     if (text.isEmpty && state.pendingImages.isEmpty) return;
+    HapticFeedback.lightImpact();
     context.read<ChatDetailBloc>().add(ChatDetailMessageSent(text));
     _textController.clear();
+    setState(() {});
   }
 
   Future<void> _pickImage() async {
@@ -499,15 +571,14 @@ class _ChatDetailPageState extends State<ChatDetailPage>
 
     try {
       final bytes = await image.readAsBytes();
+      if (!mounted) return;
       context.read<ChatDetailBloc>().add(ChatDetailImageUploaded(
             bytes,
             filename: image.name,
           ));
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('上传失败: $e')),
-      );
+      BdxToast.show(context, message: '上传失败: $e', icon: Icons.error_outline);
     }
   }
 
@@ -524,23 +595,29 @@ class _ChatDetailPageState extends State<ChatDetailPage>
           builder: (context, state) {
             if (state.error != null) {
               return Container(
-                padding: const EdgeInsets.all(32),
+                padding: AppDimens.pagePadding,
                 decoration: BoxDecoration(
                   color: colors.bgElevated,
-                  borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(AppDimens.r24),
+                  ),
                 ),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
+                    const BdxBottomSheetHandle(),
                     Text(
                       state.error!,
                       style: const TextStyle(color: Colors.redAccent),
                       textAlign: TextAlign.center,
                     ),
-                    const SizedBox(height: 16),
-                    ElevatedButton(
-                      onPressed: () => context.read<ChatDetailBloc>().add(const ChatDetailModelsReloadRequested()),
-                      child: const Text('重试'),
+                    const SizedBox(height: AppDimens.s16),
+                    BdxButton(
+                      text: '重试',
+                      expanded: true,
+                      onTap: () => context
+                          .read<ChatDetailBloc>()
+                          .add(const ChatDetailModelsReloadRequested()),
                     ),
                   ],
                 ),
@@ -548,16 +625,19 @@ class _ChatDetailPageState extends State<ChatDetailPage>
             }
             if (state.models.isEmpty) {
               return Container(
-                padding: const EdgeInsets.all(32),
+                padding: AppDimens.pagePadding,
                 decoration: BoxDecoration(
                   color: colors.bgElevated,
-                  borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(AppDimens.r24),
+                  ),
                 ),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const CircularProgressIndicator(color: AppColors.primary),
-                    const SizedBox(height: 16),
+                    const BdxBottomSheetHandle(),
+                    const BdxLoading(),
+                    const SizedBox(height: AppDimens.s16),
                     Text('加载模型中...', style: TextStyle(color: colors.text)),
                   ],
                 ),
@@ -566,7 +646,9 @@ class _ChatDetailPageState extends State<ChatDetailPage>
             return ModelPicker(
               models: state.models,
               selectedId: state.currentModel,
-              onSelected: (id) => context.read<ChatDetailBloc>().add(ChatDetailModelSelected(id)),
+              onSelected: (id) => context
+                  .read<ChatDetailBloc>()
+                  .add(ChatDetailModelSelected(id)),
             );
           },
         ),
@@ -578,40 +660,51 @@ class _ChatDetailPageState extends State<ChatDetailPage>
     final colors = AppColors.of(context);
     showModalBottomSheet(
       context: context,
-      backgroundColor: colors.bgElevated,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (context) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 40,
-              height: 4,
-              margin: const EdgeInsets.symmetric(vertical: 12),
-              decoration: BoxDecoration(
-                color: colors.borderSubtle,
-                borderRadius: BorderRadius.circular(2),
+      backgroundColor: Colors.transparent,
+      builder: (context) => Material(
+        color: colors.bgElevated,
+        borderRadius: const BorderRadius.vertical(
+          top: Radius.circular(AppDimens.r24),
+        ),
+        child: SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const BdxBottomSheetHandle(),
+              ListTile(
+                leading: Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: colors.glassWhite,
+                    borderRadius: BorderRadius.circular(AppDimens.r10),
+                  ),
+                  child: Icon(Icons.cleaning_services, color: colors.text),
+                ),
+                title: Text('清空对话', style: TextStyle(color: colors.text)),
+                onTap: () {
+                  context.read<ChatDetailBloc>().add(const ChatDetailCleared());
+                  Navigator.pop(context);
+                },
               ),
-            ),
-            ListTile(
-              leading: Icon(Icons.cleaning_services, color: colors.text),
-              title: Text('清空对话', style: TextStyle(color: colors.text)),
-              onTap: () {
-                context.read<ChatDetailBloc>().add(const ChatDetailCleared());
-                Navigator.pop(context);
-              },
-            ),
-            ListTile(
-              leading: Icon(Icons.add_circle_outline, color: colors.text),
-              title: Text('新建对话', style: TextStyle(color: colors.text)),
-              onTap: () {
-                context.read<ChatDetailBloc>().add(const ChatDetailCleared());
-                Navigator.pop(context);
-              },
-            ),
-          ],
+              ListTile(
+                leading: Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: colors.glassWhite,
+                    borderRadius: BorderRadius.circular(AppDimens.r10),
+                  ),
+                  child: Icon(Icons.add_circle_outline, color: colors.text),
+                ),
+                title: Text('新建对话', style: TextStyle(color: colors.text)),
+                onTap: () {
+                  context.read<ChatDetailBloc>().add(const ChatDetailCleared());
+                  Navigator.pop(context);
+                },
+              ),
+            ],
+          ),
         ),
       ),
     );

@@ -1,9 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../core/constants/app_dimens.dart';
+import '../../../core/constants/app_text_styles.dart';
+import '../../../core/utils/bdx_animations.dart';
 import '../../blocs/auth/auth_bloc.dart';
 import '../../widgets/app_header.dart';
+import '../../widgets/bdx/bdx.dart';
+import '../../widgets/tech_background.dart';
 
 class ProfilePage extends StatelessWidget {
   const ProfilePage({super.key});
@@ -14,127 +20,101 @@ class ProfilePage extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: colors.bg,
-      body: Column(
-        children: [
-          AppHeader(
-            title: '我的',
-            leading: IconButton(
-              onPressed: () => context.canPop() ? context.pop() : context.go('/'),
-              icon: Icon(Icons.arrow_back, color: colors.text),
+      body: TechBackground(
+        child: Column(
+          children: [
+            AppHeader(
+              title: '我的',
+              leading: BdxIconButton(
+                icon: Icons.arrow_back,
+                onTap: () => context.canPop() ? context.pop() : context.go('/'),
+                backgroundColor: Colors.transparent,
+              ),
             ),
-          ),
-          Expanded(
-            child: BlocBuilder<AuthBloc, AuthState>(
-              builder: (context, state) {
-                final user = state.user;
-                final isLogin = state.isAuthenticated;
+            Expanded(
+              child: BlocBuilder<AuthBloc, AuthState>(
+                builder: (context, state) {
+                  final user = state.user;
+                  final isLogin = state.isAuthenticated;
 
-                return Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: Column(
-                    children: [
-                      _buildUserCard(context, user, isLogin),
-                      const SizedBox(height: 24),
-                      _buildActionButton(
-                        context,
-                        icon: Icons.settings_outlined,
-                        label: '设置',
-                        onTap: () => context.push('/settings'),
-                      ),
-                      const SizedBox(height: 12),
-                      if (isLogin)
+                  return SingleChildScrollView(
+                    padding: AppDimens.pagePadding,
+                    child: Column(
+                      children: [
+                        _buildUserCard(context, user, isLogin),
+                        const SizedBox(height: AppDimens.s24),
                         _buildActionButton(
                           context,
-                          icon: Icons.logout,
-                          label: '退出登录',
-                          color: AppColors.pink,
-                          onTap: () => _showLogoutDialog(context),
-                        )
-                      else
-                        _buildActionButton(
-                          context,
-                          icon: Icons.login,
-                          label: '去登录',
-                          gradient: AppColors.primaryGradient,
-                          onTap: () => context.go('/login'),
+                          icon: Icons.settings_outlined,
+                          label: '设置',
+                          onTap: () {
+                            HapticFeedback.lightImpact();
+                            context.push('/settings');
+                          },
                         ),
-                    ],
-                  ),
-                );
-              },
+                        const SizedBox(height: AppDimens.s12),
+                        if (isLogin)
+                          _buildActionButton(
+                            context,
+                            icon: Icons.logout,
+                            label: '退出登录',
+                            color: AppColors.pink,
+                            onTap: () => _showLogoutDialog(context),
+                          )
+                        else
+                          BdxButton(
+                            text: '去登录',
+                            icon: Icons.login,
+                            expanded: true,
+                            onTap: () => context.go('/login'),
+                          ),
+                      ],
+                    ),
+                  );
+                },
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildUserCard(BuildContext context, dynamic user, bool isLogin) {
-    final colors = AppColors.of(context);
-
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        gradient: AppColors.glassGradient,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: colors.borderSubtle),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.primary.withOpacity(0.1),
-            blurRadius: 30,
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 68,
-            height: 68,
-            decoration: BoxDecoration(
-              gradient: AppColors.primaryGradient,
-              borderRadius: BorderRadius.circular(22),
-              boxShadow: [
-                BoxShadow(
-                  color: AppColors.primary.withOpacity(0.25),
-                  blurRadius: 20,
-                ),
-              ],
+    return BdxAnimations.fadeSlideIn(
+      GlassCard(
+        borderRadius: AppDimens.r24,
+        padding: const EdgeInsets.all(AppDimens.s20),
+        child: Row(
+          children: [
+            BdxAvatar(
+              imageUrl: user?.avatar,
+              icon: Icons.person,
+              size: 68,
+              borderRadius: AppDimens.r22,
             ),
-            child: user?.avatar != null
-                ? ClipRRect(
-                    borderRadius: BorderRadius.circular(22),
-                    child: Image.network(user!.avatar!, fit: BoxFit.cover),
-                  )
-                : const Icon(Icons.person, color: Colors.white, size: 32),
-          ),
-          const SizedBox(width: 20),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  user?.nickname ?? (isLogin ? '用户' : '未登录'),
-                  style: TextStyle(
-                    color: colors.text,
-                    fontSize: 20,
-                    fontWeight: FontWeight.w600,
+            const SizedBox(width: AppDimens.s20),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    user?.nickname ?? (isLogin ? '用户' : '未登录'),
+                    style: AppTextStyles.titleLarge(context),
                   ),
-                ),
-                if (user?.username != null)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 4),
-                    child: Text(
-                      '@${user!.username}',
-                      style: TextStyle(
-                        color: colors.textTertiary,
-                        fontSize: 13,
+                  if (user?.username != null)
+                    Padding(
+                      padding: const EdgeInsets.only(top: AppDimens.s4),
+                      child: Text(
+                        '@${user!.username}',
+                        style: AppTextStyles.caption(context),
                       ),
                     ),
-                  ),
-              ],
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -145,24 +125,31 @@ class ProfilePage extends StatelessWidget {
     required String label,
     required VoidCallback onTap,
     Color? color,
-    Gradient? gradient,
   }) {
     final colors = AppColors.of(context);
 
-    return GestureDetector(
+    return PressScale(
       onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          gradient: gradient,
-          color: gradient == null ? colors.glassWhite : null,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: colors.borderSubtle),
-        ),
+      child: GlassCard(
+        borderRadius: AppDimens.r16,
+        padding: AppDimens.listItemPadding,
+        margin: const EdgeInsets.only(bottom: AppDimens.s12),
         child: Row(
           children: [
-            Icon(icon, color: color ?? colors.text),
-            const SizedBox(width: 12),
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: color?.withValues(alpha: 0.15) ?? colors.glassWhite,
+                borderRadius: BorderRadius.circular(AppDimens.r10),
+              ),
+              child: Icon(
+                icon,
+                color: color ?? colors.text,
+                size: AppDimens.iconMedium,
+              ),
+            ),
+            const SizedBox(width: AppDimens.s12),
             Text(
               label,
               style: TextStyle(
@@ -172,7 +159,11 @@ class ProfilePage extends StatelessWidget {
               ),
             ),
             const Spacer(),
-            Icon(Icons.chevron_right, color: color ?? colors.textTertiary),
+            Icon(
+              Icons.chevron_right,
+              color: color ?? colors.textTertiary,
+              size: AppDimens.iconMedium,
+            ),
           ],
         ),
       ),
@@ -180,13 +171,16 @@ class ProfilePage extends StatelessWidget {
   }
 
   void _showLogoutDialog(BuildContext context) {
+    HapticFeedback.lightImpact();
     final colors = AppColors.of(context);
 
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
         backgroundColor: colors.bgElevated,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppDimens.r20),
+        ),
         title: Text('确认退出？', style: TextStyle(color: colors.text)),
         content: Text(
           '退出后需要重新登录',
@@ -199,11 +193,15 @@ class ProfilePage extends StatelessWidget {
           ),
           TextButton(
             onPressed: () {
+              HapticFeedback.mediumImpact();
               Navigator.pop(context);
               context.read<AuthBloc>().add(const AuthLogoutRequested());
               context.go('/login');
             },
-            child: const Text('退出', style: TextStyle(color: AppColors.pink)),
+            child: const Text(
+              '退出',
+              style: TextStyle(color: AppColors.pink),
+            ),
           ),
         ],
       ),

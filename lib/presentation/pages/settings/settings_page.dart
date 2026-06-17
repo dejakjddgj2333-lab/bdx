@@ -1,12 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../core/constants/app_dimens.dart';
+import '../../../core/constants/app_text_styles.dart';
 import '../../../core/constants/app_theme_mode.dart';
 import '../../blocs/theme/theme_cubit.dart';
 import '../../blocs/theme/theme_state.dart';
 import '../../blocs/voice_call_settings/voice_call_settings_cubit.dart';
 import '../../widgets/app_header.dart';
+import '../../widgets/bdx/bdx.dart';
+import '../../widgets/tech_background.dart';
 
 class SettingsPage extends StatelessWidget {
   const SettingsPage({super.key});
@@ -17,39 +22,41 @@ class SettingsPage extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: colors.bg,
-      body: Column(
-        children: [
-          AppHeader(
-            title: '设置',
-            leading: IconButton(
-              onPressed: () => context.canPop() ? context.pop() : context.go('/'),
-              icon: Icon(Icons.arrow_back, color: colors.text),
-            ),
-          ),
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildSectionTitle(context, '外观'),
-                  const SizedBox(height: 12),
-                  _buildThemeCard(context),
-                  const SizedBox(height: 28),
-                  _buildSectionTitle(context, '语音通话音色'),
-                  const SizedBox(height: 12),
-                  _buildVoiceCallCard(context),
-                ],
+      body: TechBackground(
+        child: Column(
+          children: [
+            AppHeader(
+              title: '设置',
+              leading: BdxIconButton(
+                icon: Icons.arrow_back,
+                onTap: () => context.canPop() ? context.pop() : context.go('/'),
+                backgroundColor: Colors.transparent,
               ),
             ),
-          ),
-        ],
+            Expanded(
+              child: SingleChildScrollView(
+                padding: AppDimens.pagePadding,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildSectionTitle(context, '外观'),
+                    const SizedBox(height: AppDimens.s12),
+                    _buildThemeCard(context),
+                    const SizedBox(height: AppDimens.s28),
+                    _buildSectionTitle(context, '语音通话音色'),
+                    const SizedBox(height: AppDimens.s12),
+                    _buildVoiceCallCard(context),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildSectionTitle(BuildContext context, String title) {
-    final colors = AppColors.of(context);
     return Row(
       children: [
         Container(
@@ -60,41 +67,33 @@ class SettingsPage extends StatelessWidget {
             borderRadius: BorderRadius.circular(2),
           ),
         ),
-        const SizedBox(width: 8),
+        const SizedBox(width: AppDimens.s8),
         Text(
           title,
-          style: TextStyle(
-            color: colors.textTertiary,
-            fontSize: 13,
-            fontWeight: FontWeight.w500,
-          ),
+          style: AppTextStyles.label(context),
         ),
       ],
     );
   }
 
   Widget _buildThemeCard(BuildContext context) {
-    final colors = AppColors.of(context);
-
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: colors.glassWhite,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: colors.borderSubtle),
-      ),
+    return GlassCard(
+      padding: AppDimens.cardPadding,
       child: BlocBuilder<ThemeCubit, ThemeState>(
         builder: (context, state) {
           return Column(
             children: AppThemeMode.values.map((mode) {
               final isSelected = state.mode == mode;
               return Padding(
-                padding: const EdgeInsets.only(bottom: 10),
+                padding: const EdgeInsets.only(bottom: AppDimens.s10),
                 child: _buildThemeOption(
                   context,
                   mode: mode,
                   isSelected: isSelected,
-                  onTap: () => context.read<ThemeCubit>().setMode(mode),
+                  onTap: () {
+                    HapticFeedback.lightImpact();
+                    context.read<ThemeCubit>().setMode(mode);
+                  },
                 ),
               );
             }).toList(),
@@ -112,15 +111,20 @@ class SettingsPage extends StatelessWidget {
   }) {
     final colors = AppColors.of(context);
 
-    return GestureDetector(
+    return PressScale(
       onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeOutCubic,
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppDimens.s16,
+          vertical: AppDimens.s14,
+        ),
         decoration: BoxDecoration(
           color: isSelected
-              ? AppColors.primary.withOpacity(0.15)
-              : colors.bgElevated.withOpacity(0.5),
-          borderRadius: BorderRadius.circular(16),
+              ? AppColors.primary.withValues(alpha: 0.15)
+              : colors.bgElevated.withValues(alpha: 0.5),
+          borderRadius: BorderRadius.circular(AppDimens.r16),
           border: Border.all(
             color: isSelected ? colors.border : colors.borderSubtle,
           ),
@@ -132,7 +136,7 @@ class SettingsPage extends StatelessWidget {
               color: isSelected ? AppColors.primaryLight : colors.textSecondary,
               size: 22,
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: AppDimens.s12),
             Text(
               mode.displayName,
               style: TextStyle(
@@ -155,15 +159,8 @@ class SettingsPage extends StatelessWidget {
   }
 
   Widget _buildVoiceCallCard(BuildContext context) {
-    final colors = AppColors.of(context);
-
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: colors.glassWhite,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: colors.borderSubtle),
-      ),
+    return GlassCard(
+      padding: AppDimens.cardPadding,
       child: BlocBuilder<VoiceCallSettingsCubit, VoiceCallSettingsState>(
         builder: (context, state) {
           if (!state.isLoaded && !state.isLoading && state.error == null) {
@@ -173,15 +170,15 @@ class SettingsPage extends StatelessWidget {
           if (state.error != null) {
             return Text(
               '加载失败：${state.error}',
-              style: TextStyle(color: colors.textSecondary, fontSize: 14),
+              style: TextStyle(color: AppColors.of(context).textSecondary, fontSize: 14),
             );
           }
 
           if (state.isLoading || !state.isLoaded) {
             return const Center(
               child: Padding(
-                padding: EdgeInsets.all(16),
-                child: CircularProgressIndicator(strokeWidth: 2),
+                padding: EdgeInsets.all(AppDimens.s16),
+                child: BdxLoading(),
               ),
             );
           }
@@ -191,11 +188,11 @@ class SettingsPage extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Padding(
-                padding: const EdgeInsets.only(bottom: 12, left: 4),
+                padding: const EdgeInsets.only(bottom: AppDimens.s12, left: AppDimens.s4),
                 child: Text(
                   '当前厂商：${config.name}',
                   style: TextStyle(
-                    color: colors.textSecondary,
+                    color: AppColors.of(context).textSecondary,
                     fontSize: 13,
                   ),
                 ),
@@ -203,14 +200,17 @@ class SettingsPage extends StatelessWidget {
               ...config.voices.map((voice) {
                 final isSelected = state.selectedVoice == voice;
                 return Padding(
-                  padding: const EdgeInsets.only(bottom: 10),
+                  padding: const EdgeInsets.only(bottom: AppDimens.s10),
                   child: _buildVoiceCallOption(
                     context,
                     voice: voice,
                     label: config.labelFor(voice),
                     intro: config.introFor(voice),
                     isSelected: isSelected,
-                    onTap: () => context.read<VoiceCallSettingsCubit>().selectVoice(voice),
+                    onTap: () {
+                      HapticFeedback.lightImpact();
+                      context.read<VoiceCallSettingsCubit>().selectVoice(voice);
+                    },
                   ),
                 );
               }),
@@ -231,15 +231,20 @@ class SettingsPage extends StatelessWidget {
   }) {
     final colors = AppColors.of(context);
 
-    return GestureDetector(
+    return PressScale(
       onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeOutCubic,
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppDimens.s16,
+          vertical: AppDimens.s14,
+        ),
         decoration: BoxDecoration(
           color: isSelected
-              ? AppColors.primary.withOpacity(0.15)
-              : colors.bgElevated.withOpacity(0.5),
-          borderRadius: BorderRadius.circular(16),
+              ? AppColors.primary.withValues(alpha: 0.15)
+              : colors.bgElevated.withValues(alpha: 0.5),
+          borderRadius: BorderRadius.circular(AppDimens.r16),
           border: Border.all(
             color: isSelected ? colors.border : colors.borderSubtle,
           ),
@@ -251,7 +256,7 @@ class SettingsPage extends StatelessWidget {
               color: isSelected ? AppColors.primaryLight : colors.textSecondary,
               size: 22,
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: AppDimens.s12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -266,11 +271,13 @@ class SettingsPage extends StatelessWidget {
                   ),
                   if (intro != null && intro.isNotEmpty)
                     Padding(
-                      padding: const EdgeInsets.only(top: 2),
+                      padding: const EdgeInsets.only(top: AppDimens.s2),
                       child: Text(
                         intro,
                         style: TextStyle(
-                          color: isSelected ? colors.textSecondary : colors.textTertiary,
+                          color: isSelected
+                              ? colors.textSecondary
+                              : colors.textTertiary,
                           fontSize: 12,
                         ),
                         maxLines: 1,
