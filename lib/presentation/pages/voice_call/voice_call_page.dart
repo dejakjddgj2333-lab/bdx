@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:math' show pi, sin;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -178,6 +179,13 @@ class _VoiceCallPageState extends State<VoiceCallPage>
   }
 
   Widget _buildAvatar(VoiceCallState state) {
+    if (state.status == CallStatus.connecting) {
+      return BdxConnectingRing(
+        animation: _waveController,
+        size: 220,
+      );
+    }
+
     final isActive = state.status == CallStatus.speaking ||
         state.status == CallStatus.listening;
 
@@ -187,35 +195,20 @@ class _VoiceCallPageState extends State<VoiceCallPage>
         final scale = isActive ? 1.0 + _waveController.value * 0.05 : 1.0;
         return Transform.scale(
           scale: scale,
-          child: Container(
-            width: 150,
-            height: 150,
-            decoration: BoxDecoration(
-              gradient: AppColors.primaryGradient,
-              borderRadius: BorderRadius.circular(AppDimens.r40),
-              boxShadow: AppShadows.avatarGlow(
-                AppColors.primary,
-                opacity: isActive ? 0.55 : 0.35,
-              ),
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(AppDimens.r40),
-              child: Padding(
-                padding: const EdgeInsets.all(AppDimens.s24),
-                child: Image.asset(
-                  'assets/images/logo.png',
-                  fit: BoxFit.contain,
-                  errorBuilder: (_, _, _) => const Icon(
-                    Icons.auto_awesome,
-                    color: Colors.white,
-                    size: 64,
-                  ),
-                ),
-              ),
-            ),
-          ),
+          child: child,
         );
       },
+      child: Image.asset(
+        'assets/images/logo.png',
+        width: 170,
+        height: 170,
+        fit: BoxFit.contain,
+        errorBuilder: (_, _, _) => const Icon(
+          Icons.auto_awesome,
+          color: Colors.white,
+          size: 64,
+        ),
+      ),
     );
   }
 
@@ -223,43 +216,11 @@ class _VoiceCallPageState extends State<VoiceCallPage>
     final isActive = state.status == CallStatus.speaking ||
         state.status == CallStatus.listening;
 
-    return SizedBox(
+    return BdxWaveVisualizer(
+      animation: _waveController,
+      active: isActive,
+      width: 260,
       height: 70,
-      child: AnimatedBuilder(
-        animation: _waveController,
-        builder: (context, child) {
-          return Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: List.generate(5, (index) {
-              final delay = index * 0.2;
-              final value = (_waveController.value + delay) % 1.0;
-              final baseHeight = isActive ? 20.0 : 10.0;
-              final amplitude = isActive ? 40.0 : 15.0;
-              final height = baseHeight + value * amplitude;
-              return Container(
-                margin: const EdgeInsets.symmetric(horizontal: AppDimens.s4),
-                width: 6,
-                height: height,
-                decoration: BoxDecoration(
-                  color: AppColors.primaryLight.withValues(
-                    alpha: 0.5 + value * 0.5,
-                  ),
-                  borderRadius: BorderRadius.circular(3),
-                  boxShadow: isActive
-                      ? [
-                          BoxShadow(
-                            color: AppColors.primaryLight.withValues(alpha: 0.4),
-                            blurRadius: 8,
-                          ),
-                        ]
-                      : null,
-                ),
-              );
-            }),
-          );
-        },
-      ),
     );
   }
 
@@ -268,32 +229,40 @@ class _VoiceCallPageState extends State<VoiceCallPage>
       return _buildControlButton(
         icon: Icons.phone_in_talk,
         label: '重新接通',
+        size: 64,
         color: AppColors.primary,
         onTap: () => _checkPermissionAndStart(),
       );
     }
 
     return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      mainAxisAlignment: MainAxisAlignment.center,
+      crossAxisAlignment: CrossAxisAlignment.end,
       children: [
         _buildControlButton(
           icon: state.isMuted ? Icons.mic_off : Icons.mic,
           label: state.isMuted ? '已静音' : '静音',
+          size: 56,
           isActive: state.isMuted,
           onTap: () {
             HapticFeedback.lightImpact();
             context.read<VoiceCallBloc>().add(const VoiceCallToggleMute());
           },
         ),
+        const SizedBox(width: AppDimens.s24),
         _buildControlButton(
           icon: Icons.call_end,
           label: '挂断',
+          size: 76,
           color: AppColors.pink,
+          pulse: true,
           onTap: () => _hangup(context),
         ),
+        const SizedBox(width: AppDimens.s24),
         _buildControlButton(
           icon: state.isSpeaker ? Icons.volume_up : Icons.hearing,
           label: state.isSpeaker ? '免提' : '听筒',
+          size: 56,
           isActive: state.isSpeaker,
           onTap: () {
             HapticFeedback.lightImpact();
@@ -308,13 +277,46 @@ class _VoiceCallPageState extends State<VoiceCallPage>
     required IconData icon,
     required String label,
     required VoidCallback onTap,
+    required double size,
     Color? color,
     bool isActive = false,
+    bool pulse = false,
   }) {
     final colors = AppColors.of(context);
     final isHangup = color == AppColors.pink;
     final backgroundColor = color ??
         (isActive ? AppColors.primary : colors.glassWhite);
+
+    Widget button = Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        color: backgroundColor,
+        shape: BoxShape.circle,
+        border: Border.all(
+          color: isHangup || isActive
+              ? Colors.transparent
+              : colors.borderSubtle,
+        ),
+        boxShadow: isHangup
+            ? AppShadows.glowAccent(opacity: 0.45)
+            : isActive
+                ? AppShadows.glowPrimary(opacity: 0.35)
+                : null,
+      ),
+      child: Icon(icon, color: Colors.white, size: size * 0.4),
+    );
+
+    if (pulse) {
+      button = AnimatedBuilder(
+        animation: _waveController,
+        builder: (context, child) {
+          final scale = 1.0 + sin(_waveController.value * 2 * pi) * 0.04;
+          return Transform.scale(scale: scale, child: child);
+        },
+        child: button,
+      );
+    }
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -322,30 +324,16 @@ class _VoiceCallPageState extends State<VoiceCallPage>
         PressScale(
           onTap: onTap,
           scale: 0.92,
-          child: Container(
-            width: 64,
-            height: 64,
-            decoration: BoxDecoration(
-              color: backgroundColor,
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: isHangup || isActive
-                    ? Colors.transparent
-                    : colors.borderSubtle,
-              ),
-              boxShadow: isHangup
-                  ? AppShadows.glowAccent(opacity: 0.4)
-                  : isActive
-                      ? AppShadows.glowPrimary(opacity: 0.35)
-                      : null,
-            ),
-            child: Icon(icon, color: Colors.white, size: 28),
-          ),
+          child: button,
         ),
-        const SizedBox(height: AppDimens.s8),
+        SizedBox(height: isHangup ? AppDimens.s10 : AppDimens.s8),
         Text(
           label,
-          style: TextStyle(color: colors.textSecondary, fontSize: 12),
+          style: TextStyle(
+            color: isHangup ? AppColors.pink : colors.textSecondary,
+            fontSize: isHangup ? 13 : 12,
+            fontWeight: isHangup ? FontWeight.w600 : FontWeight.normal,
+          ),
         ),
       ],
     );

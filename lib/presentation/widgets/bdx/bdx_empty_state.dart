@@ -9,6 +9,7 @@ class BdxEmptyState extends StatelessWidget {
   final String title;
   final String? subtitle;
   final Widget? action;
+  final Widget? illustration;
 
   const BdxEmptyState({
     super.key,
@@ -16,6 +17,7 @@ class BdxEmptyState extends StatelessWidget {
     required this.title,
     this.subtitle,
     this.action,
+    this.illustration,
   });
 
   @override
@@ -29,11 +31,14 @@ class BdxEmptyState extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              GlassCard(
-                borderRadius: AppDimens.r24,
-                padding: const EdgeInsets.all(AppDimens.s24),
-                child: Icon(icon, color: colors.textTertiary, size: 40),
-              ),
+              if (illustration != null)
+                illustration!
+              else
+                GlassCard(
+                  borderRadius: AppDimens.r24,
+                  padding: const EdgeInsets.all(AppDimens.s24),
+                  child: Icon(icon, color: colors.textTertiary, size: 40),
+                ),
               const SizedBox(height: AppDimens.s20),
               Text(
                 title,

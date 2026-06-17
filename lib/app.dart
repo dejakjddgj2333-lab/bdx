@@ -9,6 +9,7 @@ import 'presentation/blocs/agent/agent_bloc.dart';
 import 'presentation/blocs/auth/auth_bloc.dart';
 import 'presentation/blocs/chat_detail/chat_detail_bloc.dart';
 import 'presentation/blocs/chat_list/chat_list_bloc.dart';
+import 'presentation/blocs/model/model_cubit.dart';
 import 'presentation/blocs/theme/theme_cubit.dart';
 import 'presentation/blocs/theme/theme_state.dart';
 import 'presentation/blocs/voice_call/voice_call_bloc.dart';
@@ -16,6 +17,7 @@ import 'presentation/blocs/voice_call_settings/voice_call_settings_cubit.dart';
 import 'presentation/pages/agent/agent_list_page.dart';
 import 'presentation/pages/chat/chat_detail_page.dart';
 import 'presentation/pages/chat/chat_list_page.dart';
+import 'presentation/pages/chat/conversation_history_page.dart';
 import 'presentation/pages/login/login_page.dart';
 import 'presentation/pages/profile/profile_page.dart';
 import 'presentation/pages/settings/settings_page.dart';
@@ -34,6 +36,7 @@ class App extends StatelessWidget {
         ),
         BlocProvider<ThemeCubit>.value(value: getIt<ThemeCubit>()),
         BlocProvider<VoiceCallSettingsCubit>.value(value: getIt<VoiceCallSettingsCubit>()),
+        BlocProvider<ModelCubit>.value(value: getIt<ModelCubit>()),
       ],
       child: BlocBuilder<ThemeCubit, ThemeState>(
         builder: (context, themeState) {
@@ -122,6 +125,16 @@ final GoRouter _router = GoRouter(
           ),
         );
       },
+    ),
+    GoRoute(
+      path: '/chat/history',
+      pageBuilder: (context, state) => CupertinoPage(
+        key: state.pageKey,
+        child: BlocProvider(
+          create: (_) => getIt<ChatListBloc>()..add(const ChatListLoaded()),
+          child: const ConversationHistoryPage(),
+        ),
+      ),
     ),
     GoRoute(
       path: '/agents',

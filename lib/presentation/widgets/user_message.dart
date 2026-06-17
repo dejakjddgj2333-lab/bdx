@@ -4,7 +4,8 @@ import '../../core/constants/api_constants.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_dimens.dart';
 import '../../core/utils/bdx_animations.dart';
-import 'bdx/glass_card.dart';
+import '../../../core/constants/app_shadows.dart';
+import 'bdx/bdx.dart';
 
 class UserMessage extends StatelessWidget {
   final dynamic content;
@@ -39,6 +40,7 @@ class UserMessage extends StatelessWidget {
                         end: Alignment.bottomRight,
                       )
                     : AppColors.primaryGradient,
+                shadows: AppShadows.card(context),
                 padding: const EdgeInsets.all(AppDimens.s12),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,

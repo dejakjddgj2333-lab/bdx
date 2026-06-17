@@ -44,6 +44,16 @@ class SideMenu extends StatelessWidget {
               ),
               _buildMenuItem(
                 context,
+                Icons.history,
+                '历史记录',
+                () {
+                  HapticFeedback.lightImpact();
+                  Navigator.pop(context);
+                  context.push('/chat/history');
+                },
+              ),
+              _buildMenuItem(
+                context,
                 Icons.smart_toy_outlined,
                 '发现智能体',
                 () {

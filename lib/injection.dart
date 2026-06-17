@@ -14,6 +14,7 @@ import 'domain/repositories/agent_repository.dart';
 import 'presentation/blocs/auth/auth_bloc.dart';
 import 'presentation/blocs/chat_list/chat_list_bloc.dart';
 import 'presentation/blocs/chat_detail/chat_detail_bloc.dart';
+import 'presentation/blocs/model/model_cubit.dart';
 import 'presentation/blocs/agent/agent_bloc.dart';
 import 'presentation/blocs/theme/theme_cubit.dart';
 import 'presentation/blocs/voice_call_settings/voice_call_settings_cubit.dart';
@@ -73,6 +74,7 @@ Future<void> configureDependencies() async {
   getIt.registerFactory(() => AuthBloc(getIt<AuthRepository>()));
   getIt.registerFactory(() => ChatListBloc(getIt<ChatRepository>()));
   getIt.registerFactory(() => ChatDetailBloc(getIt<ChatRepository>()));
+  getIt.registerLazySingleton(() => ModelCubit(getIt<ChatRepository>()));
   getIt.registerFactory(() => AgentBloc(getIt<AgentRepository>()));
   getIt.registerFactory(() => VoiceCallBloc(
         getIt<WebSocketService>(),

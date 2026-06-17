@@ -4,7 +4,7 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_dimens.dart';
 
 class AppHeader extends StatelessWidget {
-  final String title;
+  final String? title;
   final Widget? leading;
   final List<Widget>? actions;
   final bool showBorder;
@@ -12,7 +12,7 @@ class AppHeader extends StatelessWidget {
 
   const AppHeader({
     super.key,
-    required this.title,
+    this.title,
     this.leading,
     this.actions,
     this.showBorder = false,
@@ -48,15 +48,17 @@ class AppHeader extends StatelessWidget {
           else
             const SizedBox(width: 48),
           Expanded(
-            child: Text(
-              title,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: colors.text,
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
+            child: title != null
+                ? Text(
+                    title!,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: colors.text,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  )
+                : const SizedBox.shrink(),
           ),
           if (actions != null)
             Row(

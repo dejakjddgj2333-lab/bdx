@@ -44,7 +44,12 @@ class ChatDetailBloc extends Bloc<ChatDetailEvent, ChatDetailState> {
       add(ChatDetailMessagesLoaded(event.conversationId!));
     }
 
-    await _loadModels(emit);
+    if (event.initialModels != null && event.initialModels!.isNotEmpty) {
+      emit(state.copyWith(models: event.initialModels, clearError: true));
+      _ensureCurrentModel(emit);
+    } else {
+      await _loadModels(emit);
+    }
     await _loadSuggestions(emit);
   }
 

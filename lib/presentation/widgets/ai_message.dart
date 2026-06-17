@@ -3,7 +3,7 @@ import 'package:flutter_markdown/flutter_markdown.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_dimens.dart';
 import '../../core/utils/bdx_animations.dart';
-import 'bdx/glass_card.dart';
+import 'bdx/bdx.dart';
 
 class AiMessage extends StatelessWidget {
   final dynamic content;
@@ -31,9 +31,9 @@ class AiMessage extends StatelessWidget {
               customBorderRadius: AppDimens.messageBubble(isUser: false),
               borderColor: colors.borderSubtle,
               padding: const EdgeInsets.all(AppDimens.s14),
-              child: MarkdownBody(
-                data: text.isEmpty ? ' ' : text,
-                styleSheet: _buildMarkdownStyle(context),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: _buildContent(text, context),
               ),
             ),
             if (model != null)
@@ -55,6 +55,53 @@ class AiMessage extends StatelessWidget {
       ),
       isUser: false,
     );
+  }
+
+  List<Widget> _buildContent(String text, BuildContext context) {
+    if (text.isEmpty) {
+      return [
+        MarkdownBody(
+          data: ' ',
+          styleSheet: _buildMarkdownStyle(context),
+        ),
+      ];
+    }
+
+    final widgets = <Widget>[];
+    final pattern = RegExp(r'```([^\n]*)\n([\s\S]*?)```');
+    var lastEnd = 0;
+
+    for (final match in pattern.allMatches(text)) {
+      if (match.start > lastEnd) {
+        widgets.add(
+          MarkdownBody(
+            data: text.substring(lastEnd, match.start),
+            styleSheet: _buildMarkdownStyle(context),
+          ),
+        );
+      }
+
+      final language = match.group(1)?.trim();
+      final code = match.group(2) ?? '';
+      widgets.add(
+        BdxCodeBlock(
+          code: code,
+          language: language?.isEmpty == true ? null : language,
+        ),
+      );
+      lastEnd = match.end;
+    }
+
+    if (lastEnd < text.length) {
+      widgets.add(
+        MarkdownBody(
+          data: text.substring(lastEnd),
+          styleSheet: _buildMarkdownStyle(context),
+        ),
+      );
+    }
+
+    return widgets;
   }
 
   MarkdownStyleSheet _buildMarkdownStyle(BuildContext context) {

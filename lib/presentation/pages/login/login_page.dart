@@ -175,28 +175,15 @@ class _LoginPageState extends State<LoginPage>
 
   Widget _buildLogo() {
     return Center(
-      child: Container(
-        width: 100,
-        height: 100,
-        decoration: BoxDecoration(
-          gradient: AppColors.primaryGradient,
-          borderRadius: BorderRadius.circular(AppDimens.r28),
-          boxShadow: AppShadows.glowPrimary(),
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(AppDimens.r28),
-          child: Padding(
-            padding: const EdgeInsets.all(12),
-            child: Image.asset(
-              'assets/images/logo.png',
-              fit: BoxFit.contain,
-              errorBuilder: (_, _, _) => const Icon(
-                Icons.auto_awesome,
-                color: Colors.white,
-                size: 44,
-              ),
-            ),
-          ),
+      child: Image.asset(
+        'assets/images/logo.png',
+        width: 160,
+        height: 160,
+        fit: BoxFit.contain,
+        errorBuilder: (_, _, _) => const Icon(
+          Icons.auto_awesome,
+          color: Colors.white,
+          size: 64,
         ),
       ),
     ).animate().scale(

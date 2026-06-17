@@ -15,6 +15,7 @@ class GlassCard extends StatelessWidget {
   final BorderRadius? customBorderRadius;
   final Color? borderColor;
   final Gradient? gradient;
+  final Color? backgroundColor;
   final List<BoxShadow>? shadows;
   final bool useBlur;
 
@@ -27,6 +28,7 @@ class GlassCard extends StatelessWidget {
     this.customBorderRadius,
     this.borderColor,
     this.gradient,
+    this.backgroundColor,
     this.shadows,
     this.useBlur = true,
   });
@@ -41,7 +43,10 @@ class GlassCard extends StatelessWidget {
       padding: padding,
       margin: margin,
       decoration: BoxDecoration(
-        gradient: gradient ?? AppColors.glassGradient,
+        color: backgroundColor,
+        gradient: backgroundColor == null
+            ? (gradient ?? AppColors.glassGradient)
+            : null,
         borderRadius: effectiveRadius,
         border: Border.all(
           color: borderColor ?? colors.borderSubtle,

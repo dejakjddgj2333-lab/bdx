@@ -11,15 +11,17 @@ class ChatDetailInitialized extends ChatDetailEvent {
   final String? conversationId;
   final String? agentId;
   final String? initialModel;
+  final List<Map<String, dynamic>>? initialModels;
 
   const ChatDetailInitialized({
     this.conversationId,
     this.agentId,
     this.initialModel,
+    this.initialModels,
   });
 
   @override
-  List<Object?> get props => [conversationId, agentId, initialModel];
+  List<Object?> get props => [conversationId, agentId, initialModel, initialModels];
 }
 
 class ChatDetailMessagesLoaded extends ChatDetailEvent {

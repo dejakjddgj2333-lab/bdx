@@ -6,7 +6,6 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:shimmer/shimmer.dart';
 import '../../../core/constants/api_constants.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_dimens.dart';
@@ -14,6 +13,7 @@ import '../../../core/constants/app_shadows.dart';
 import '../../../core/constants/app_text_styles.dart';
 import '../../../core/utils/bdx_animations.dart';
 import '../../blocs/chat_detail/chat_detail_bloc.dart';
+import '../../blocs/model/model_cubit.dart';
 import '../../widgets/ai_message.dart';
 import '../../widgets/app_header.dart';
 import '../../widgets/bdx/bdx.dart';
@@ -54,10 +54,14 @@ class _ChatDetailPageState extends State<ChatDetailPage>
     context.read<ChatDetailBloc>().add(ChatDetailInitialized(
           conversationId: widget.conversationId,
           agentId: widget.agentId,
+          initialModel: context.read<ModelCubit>().state.defaultModelId,
+          initialModels: context.read<ModelCubit>().state.models.isNotEmpty
+              ? context.read<ModelCubit>().state.models
+              : null,
         ));
 
     if (widget.initialContent != null && widget.initialContent!.isNotEmpty) {
-      _textController.text = Uri.decodeComponent(widget.initialContent!);
+      _textController.text = widget.initialContent!;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         context.read<ChatDetailBloc>().add(
               ChatDetailMessageSent(_textController.text),
@@ -217,50 +221,23 @@ class _ChatDetailPageState extends State<ChatDetailPage>
   }
 
   Widget _buildSkeleton() {
-    final colors = AppColors.of(context);
-
-    return Shimmer.fromColors(
-      baseColor: colors.glassWhite,
-      highlightColor: colors.borderSubtle,
-      child: Padding(
-        padding: AppDimens.pagePadding,
-        child: Column(
-          children: [
-            Row(
-              children: [
-                Container(
-                  width: 36,
-                  height: 36,
-                  decoration: BoxDecoration(
-                    color: colors.text,
-                    shape: BoxShape.circle,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Container(
-                  width: 200,
-                  height: 60,
-                  decoration: BoxDecoration(
-                    color: colors.text,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            Align(
-              alignment: Alignment.centerRight,
-              child: Container(
-                width: 160,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: colors.text,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-            ),
-          ],
-        ),
+    return Padding(
+      padding: AppDimens.pagePadding,
+      child: Column(
+        children: [
+          Row(
+            children: [
+              const BdxSkeleton(width: 36, height: 36, borderRadius: 18),
+              const SizedBox(width: 12),
+              const BdxSkeleton(width: 200, height: 60, borderRadius: 16),
+            ],
+          ),
+          const SizedBox(height: 16),
+          const Align(
+            alignment: Alignment.centerRight,
+            child: BdxSkeleton(width: 160, height: 40, borderRadius: 14),
+          ),
+        ],
       ),
     );
   }
@@ -272,30 +249,24 @@ class _ChatDetailPageState extends State<ChatDetailPage>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Container(
-              width: 72,
-              height: 72,
-              decoration: BoxDecoration(
-                gradient: AppColors.primaryGradient,
-                borderRadius: BorderRadius.circular(AppDimens.r22),
-                boxShadow: AppShadows.glowPrimary(opacity: 0.3),
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(AppDimens.r22),
-                child: Padding(
-                  padding: const EdgeInsets.all(14),
-                  child: Image.asset(
-                    'assets/images/logo.png',
-                    fit: BoxFit.contain,
-                    errorBuilder: (_, _, _) => const Icon(
-                      Icons.auto_awesome,
-                      color: Colors.white,
-                      size: 32,
-                    ),
-                  ),
+            SizedBox(
+              width: 110,
+              height: 110,
+              child: Image.asset(
+                'assets/images/logo.png',
+                fit: BoxFit.contain,
+                errorBuilder: (_, _, _) => const Icon(
+                  Icons.auto_awesome,
+                  color: Colors.white,
+                  size: 48,
                 ),
               ),
-            ),
+            ).animate().scale(
+                  begin: const Offset(0.9, 0.9),
+                  end: const Offset(1, 1),
+                  duration: 600.ms,
+                  curve: Curves.easeOutBack,
+                ),
             const SizedBox(height: AppDimens.s24),
             Text(
               '嗨，今天要和北斗星AI一起做什么？',
@@ -470,34 +441,35 @@ class _ChatDetailPageState extends State<ChatDetailPage>
                         onChanged: (_) => setState(() {}),
                       ),
                     ),
-                    PressScale(
-                      onTap: state.isSending ? null : () => _sendMessage(state),
-                      haptic: !state.isSending,
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 200),
-                        width: 40,
-                        height: 40,
-                        margin: const EdgeInsets.all(4),
-                        decoration: BoxDecoration(
-                          gradient: state.isSending || !hasContent
-                              ? null
-                              : AppColors.primaryGradient,
-                          color: state.isSending || !hasContent
-                              ? colors.buttonOverlay
-                              : null,
-                          shape: BoxShape.circle,
-                          boxShadow: hasContent && !state.isSending
-                              ? AppShadows.glowPrimary(opacity: 0.35)
-                              : null,
-                        ),
-                        child: Icon(
-                          Icons.arrow_upward,
-                          color: hasContent && !state.isSending
-                              ? Colors.white
-                              : colors.textTertiary,
-                          size: 20,
-                        ),
-                      ),
+                    AnimatedSwitcher(
+                      duration: 200.ms,
+                      transitionBuilder: (child, animation) =>
+                          ScaleTransition(scale: animation, child: child),
+                      child: hasContent && !state.isSending
+                          ? PressScale(
+                              key: const ValueKey('send'),
+                              onTap: () => _sendMessage(state),
+                              haptic: true,
+                              child: Container(
+                                width: 40,
+                                height: 40,
+                                margin: const EdgeInsets.all(4),
+                                decoration: BoxDecoration(
+                                  gradient: AppColors.primaryGradient,
+                                  shape: BoxShape.circle,
+                                  boxShadow:
+                                      AppShadows.glowPrimary(opacity: 0.35),
+                                ),
+                                child: const Icon(
+                                  Icons.arrow_upward,
+                                  color: Colors.white,
+                                  size: 20,
+                                ),
+                              ),
+                            )
+                          : const SizedBox.shrink(
+                              key: ValueKey('empty'),
+                            ),
                     ),
                   ],
                 ),

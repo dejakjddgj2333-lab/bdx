@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
@@ -22,12 +23,14 @@ class ModelPicker extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = AppColors.of(context);
 
-    return Material(
-      color: colors.bgElevated,
-      borderRadius: const BorderRadius.vertical(
-        top: Radius.circular(AppDimens.r24),
-      ),
-      child: SafeArea(
+    return ClipRRect(
+      borderRadius: AppDimens.topRadius24,
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
+        child: Material(
+          color: colors.bgElevated.withValues(alpha: 0.82),
+          borderRadius: AppDimens.topRadius24,
+          child: SafeArea(
         child: Container(
           padding: const EdgeInsets.fromLTRB(
             AppDimens.s20,
@@ -94,8 +97,10 @@ class ModelPicker extends StatelessWidget {
           ),
         ),
       ),
-    );
-  }
+    ),
+  ),
+);
+}
 
   Widget _buildModelItem(
     BuildContext context, {
