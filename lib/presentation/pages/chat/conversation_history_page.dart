@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_dimens.dart';
+import '../../../domain/entities/conversation.dart';
 import '../../blocs/chat_list/chat_list_bloc.dart';
 import '../../widgets/app_header.dart';
 import '../../widgets/bdx/bdx.dart';
@@ -20,11 +21,30 @@ class ConversationHistoryPage extends StatefulWidget {
 
 class _ConversationHistoryPageState extends State<ConversationHistoryPage> {
   final _searchController = TextEditingController();
+  String _searchQuery = '';
 
   @override
   void dispose() {
     _searchController.dispose();
     super.dispose();
+  }
+
+  void _onSearchChanged(String value) {
+    setState(() => _searchQuery = value);
+    context.read<ChatListBloc>().add(ChatListSearchChanged(value));
+  }
+
+  void _clearSearch() {
+    _searchController.clear();
+    _onSearchChanged('');
+  }
+
+  List<Conversation> _filterConversations(List<Conversation> conversations) {
+    if (_searchQuery.isEmpty) return conversations;
+    final query = _searchQuery.toLowerCase();
+    return conversations
+        .where((c) => c.title?.toLowerCase().contains(query) ?? false)
+        .toList();
   }
 
   @override
@@ -61,15 +81,9 @@ class _ConversationHistoryPageState extends State<ConversationHistoryPage> {
                     color: colors.textTertiary,
                     size: AppDimens.iconMedium,
                   ),
-                  suffix: _searchController.text.isNotEmpty
+                  suffix: _searchQuery.isNotEmpty
                       ? IconButton(
-                          onPressed: () {
-                            _searchController.clear();
-                            context
-                                .read<ChatListBloc>()
-                                .add(const ChatListSearchChanged(''));
-                            setState(() {});
-                          },
+                          onPressed: _clearSearch,
                           icon: Icon(
                             Icons.clear,
                             color: colors.textTertiary,
@@ -77,9 +91,7 @@ class _ConversationHistoryPageState extends State<ConversationHistoryPage> {
                           ),
                         )
                       : null,
-                  onChanged: (value) => context
-                      .read<ChatListBloc>()
-                      .add(ChatListSearchChanged(value)),
+                  onChanged: _onSearchChanged,
                 ),
               ),
               Expanded(
@@ -102,15 +114,14 @@ class _ConversationHistoryPageState extends State<ConversationHistoryPage> {
                       );
                     }
                     if (state is ChatListLoadedSuccess) {
-                      final conversations = state.searchQuery.isEmpty
-                          ? state.conversations
-                          : state.filtered;
+                      final conversations = _filterConversations(state.conversations);
 
                       if (conversations.isEmpty) {
+                        final isSearching = _searchQuery.isNotEmpty;
                         return BdxEmptyState(
-                          icon: Icons.chat_bubble_outline,
-                          title: '暂无会话',
-                          subtitle: '点击右下角新建对话',
+                          icon: isSearching ? Icons.search_off : Icons.chat_bubble_outline,
+                          title: isSearching ? '未找到匹配会话' : '暂无会话',
+                          subtitle: isSearching ? '换个关键词试试' : '点击右下角新建对话',
                           illustration: const BdxEmptyIllustration(size: 160),
                         );
                       }
