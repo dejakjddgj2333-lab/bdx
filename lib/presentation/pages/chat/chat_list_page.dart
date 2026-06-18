@@ -103,6 +103,7 @@ class _ChatListPageState extends State<ChatListPage> {
           SliverToBoxAdapter(child: _buildHero(context)),
           SliverToBoxAdapter(child: _buildHomeInput(context)),
           SliverToBoxAdapter(child: _buildVoiceCard(context)),
+          SliverToBoxAdapter(child: _buildMeetingCard(context)),
           SliverToBoxAdapter(child: _buildQuickGrid(context)),
           _buildConversationList(),
         ],
@@ -325,6 +326,74 @@ class _ChatListPageState extends State<ChatListPage> {
                 ),
               ),
               const _VoiceWaveBars(),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMeetingCard(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        AppDimens.s16,
+        0,
+        AppDimens.s16,
+        AppDimens.s16,
+      ),
+      child: PressScale(
+        onTap: () => context.push('/meeting'),
+        child: Container(
+          padding: const EdgeInsets.all(AppDimens.s16),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [Color(0xFF4FACFE), Color(0xFF00C2FF)],
+            ),
+            borderRadius: BorderRadius.circular(AppDimens.r18),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 52,
+                height: 52,
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.18),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.videocam,
+                  color: Colors.white,
+                  size: 28,
+                ),
+              ),
+              const SizedBox(width: AppDimens.s14),
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '视频会议',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    SizedBox(height: AppDimens.s4),
+                    Text(
+                      '发起或加入多人音视频会议',
+                      style: TextStyle(
+                        color: Colors.white70,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(Icons.arrow_forward_ios,
+                  color: Colors.white70, size: 16),
             ],
           ),
         ),

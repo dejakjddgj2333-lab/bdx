@@ -5,6 +5,7 @@ import 'data/datasources/remote/api_client.dart';
 import 'data/datasources/remote/auth_api.dart';
 import 'data/datasources/remote/chat_api.dart';
 import 'data/datasources/remote/agent_api.dart';
+import 'data/datasources/remote/meeting_api.dart';
 import 'data/repositories/auth_repository_impl.dart';
 import 'data/repositories/chat_repository_impl.dart';
 import 'data/repositories/agent_repository_impl.dart';
@@ -19,6 +20,7 @@ import 'presentation/blocs/agent/agent_bloc.dart';
 import 'presentation/blocs/theme/theme_cubit.dart';
 import 'presentation/blocs/voice_call_settings/voice_call_settings_cubit.dart';
 import 'presentation/blocs/voice_call/voice_call_bloc.dart';
+import 'presentation/blocs/meeting/meeting_cubit.dart';
 import 'services/audio_player_service.dart';
 import 'services/audio_recorder_service.dart';
 import 'services/websocket_service.dart';
@@ -46,6 +48,7 @@ Future<void> configureDependencies() async {
   getIt.registerSingleton(AuthApi(getIt<ApiClient>().dio));
   getIt.registerSingleton(ChatApi(getIt<ApiClient>().dio));
   getIt.registerSingleton(AgentApi(getIt<ApiClient>().dio));
+  getIt.registerSingleton(MeetingApi(getIt<ApiClient>().dio));
 
   // Repositories
   getIt.registerLazySingleton<AuthRepository>(
@@ -76,6 +79,7 @@ Future<void> configureDependencies() async {
   getIt.registerFactory(() => ChatDetailBloc(getIt<ChatRepository>()));
   getIt.registerLazySingleton(() => ModelCubit(getIt<ChatRepository>()));
   getIt.registerFactory(() => AgentBloc(getIt<AgentRepository>()));
+  getIt.registerFactory(() => MeetingCubit(getIt<MeetingApi>()));
   getIt.registerFactory(() => VoiceCallBloc(
         getIt<WebSocketService>(),
         getIt<AudioRecorderService>(),

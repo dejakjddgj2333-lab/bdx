@@ -1,6 +1,6 @@
 // 应用全局接口配置
 // 如需本地开发联调，把 useDevServer 改成 true 即可
-const bool useDevServer = false;
+const bool useDevServer = true;
 
 const String devBaseUrl = 'http://localhost:3002/api';
 const String devWsUrl = 'ws://localhost:3002/ws/voice-call';
@@ -34,4 +34,5 @@ class ApiConstants {
 
   static const String agents = '/agents';
   static const String voiceProvider = '/voice-call/provider';
+  static const String meetings = '/meetings';
 }

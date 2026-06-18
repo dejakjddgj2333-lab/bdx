@@ -22,6 +22,9 @@ import 'presentation/pages/login/login_page.dart';
 import 'presentation/pages/profile/profile_page.dart';
 import 'presentation/pages/settings/settings_page.dart';
 import 'presentation/pages/voice_call/voice_call_page.dart';
+import 'presentation/pages/meeting/meeting_lobby_page.dart';
+import 'presentation/pages/meeting/meeting_room_page.dart';
+import 'presentation/blocs/meeting/meeting_cubit.dart';
 import 'presentation/widgets/tech_background.dart';
 
 class App extends StatelessWidget {
@@ -169,6 +172,30 @@ final GoRouter _router = GoRouter(
           child: const VoiceCallPage(),
         ),
       ),
+    ),
+    GoRoute(
+      path: '/meeting',
+      pageBuilder: (context, state) => CupertinoPage(
+        key: state.pageKey,
+        child: const MeetingLobbyPage(),
+      ),
+    ),
+    GoRoute(
+      path: '/meeting/room',
+      pageBuilder: (context, state) {
+        final extra = (state.extra as Map?) ?? const {};
+        return CupertinoPage(
+          key: state.pageKey,
+          child: BlocProvider(
+            create: (_) => getIt<MeetingCubit>(),
+            child: MeetingRoomPage(
+              action: extra['action'] as String? ?? 'create',
+              title: extra['title'] as String?,
+              roomName: extra['roomName'] as String?,
+            ),
+          ),
+        );
+      },
     ),
   ],
 );

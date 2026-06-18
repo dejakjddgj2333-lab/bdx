@@ -58,6 +58,9 @@ dependencies:
   # WebSocket
   web_socket_channel: ^3.0.1
 
+  # 会议（音视频，LiveKit）
+  livekit_client: ^2.3.0
+
   # 权限
   permission_handler: ^11.3.1
 
