@@ -1,4 +1,4 @@
-package com.beidouxing.beidouxing_app_flutter
+package com.beidou.aichat
 
 import io.flutter.embedding.android.FlutterActivity
 
