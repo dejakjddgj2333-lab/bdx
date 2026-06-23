@@ -6,8 +6,8 @@ const String devBaseUrl = 'http://localhost:3002/api';
 const String devWsUrl = 'ws://localhost:3002/ws/voice-call';
 const String devUploadBaseUrl = 'http://localhost:3002';
 
-const String prodBaseUrl = 'https://api.bdxapi.com/api';
-const String prodWsUrl = 'wss://api.bdxapi.com/ws/voice-call';
+const String prodBaseUrl = 'https://sk.bdxapi.com/api';
+const String prodWsUrl = 'wss://sk.bdxapi.com/ws/voice-call';
 const String prodUploadBaseUrl = 'https://api.bdxapi.com';
 
 class ApiConstants {
