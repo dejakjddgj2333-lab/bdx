@@ -14,13 +14,16 @@ import 'presentation/blocs/theme/theme_cubit.dart';
 import 'presentation/blocs/theme/theme_state.dart';
 import 'presentation/blocs/voice_call/voice_call_bloc.dart';
 import 'presentation/blocs/voice_call_settings/voice_call_settings_cubit.dart';
+import 'presentation/blocs/image_generation/image_generation_bloc.dart';
 import 'presentation/pages/agent/agent_list_page.dart';
 import 'presentation/pages/chat/chat_detail_page.dart';
 import 'presentation/pages/chat/chat_list_page.dart';
 import 'presentation/pages/chat/conversation_history_page.dart';
+import 'presentation/pages/image_generation/image_generation_page.dart';
 import 'presentation/pages/login/login_page.dart';
 import 'presentation/pages/profile/profile_page.dart';
 import 'presentation/pages/settings/settings_page.dart';
+import 'presentation/pages/tools/tools_page.dart';
 import 'presentation/pages/voice_call/voice_call_page.dart';
 import 'presentation/pages/meeting/meeting_lobby_page.dart';
 import 'presentation/pages/meeting/meeting_room_page.dart';
@@ -116,6 +119,7 @@ final GoRouter _router = GoRouter(
         final id = state.uri.queryParameters['id'];
         final agentId = state.uri.queryParameters['agentId'];
         final content = state.uri.queryParameters['content'];
+        final scene = state.uri.queryParameters['scene'] ?? 'assistant';
         return CupertinoPage(
           key: state.pageKey,
           child: BlocProvider(
@@ -124,6 +128,7 @@ final GoRouter _router = GoRouter(
               conversationId: id,
               agentId: agentId,
               initialContent: content,
+              scene: scene,
             ),
           ),
         );
@@ -147,6 +152,23 @@ final GoRouter _router = GoRouter(
           create: (_) => getIt<AgentBloc>()..add(const AgentLoaded()),
           child: const AgentListPage(),
         ),
+      ),
+    ),
+    GoRoute(
+      path: '/image-generation',
+      pageBuilder: (context, state) => CupertinoPage(
+        key: state.pageKey,
+        child: BlocProvider(
+          create: (_) => getIt<ImageGenerationBloc>()..add(const ImageGenerationLoaded()),
+          child: const ImageGenerationPage(),
+        ),
+      ),
+    ),
+    GoRoute(
+      path: '/tools',
+      pageBuilder: (context, state) => CupertinoPage(
+        key: state.pageKey,
+        child: const ToolsPage(),
       ),
     ),
     GoRoute(

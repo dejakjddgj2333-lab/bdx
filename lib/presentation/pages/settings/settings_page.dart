@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
@@ -91,7 +90,6 @@ class SettingsPage extends StatelessWidget {
                   mode: mode,
                   isSelected: isSelected,
                   onTap: () {
-                    HapticFeedback.lightImpact();
                     context.read<ThemeCubit>().setMode(mode);
                   },
                 ),
@@ -208,7 +206,6 @@ class SettingsPage extends StatelessWidget {
                     intro: config.introFor(voice),
                     isSelected: isSelected,
                     onTap: () {
-                      HapticFeedback.lightImpact();
                       context.read<VoiceCallSettingsCubit>().selectVoice(voice);
                     },
                   ),

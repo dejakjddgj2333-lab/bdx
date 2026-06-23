@@ -9,6 +9,56 @@ import '../../../domain/repositories/chat_repository.dart';
 part 'chat_detail_event.dart';
 part 'chat_detail_state.dart';
 
+// 场景配置
+final Map<String, Map<String, dynamic>> _sceneConfigs = {
+  'assistant': {
+    'title': 'AI 助手',
+    'placeholder': '输入消息，开启文字对话...',
+    'systemPrompt': null,
+    'templates': <Map<String, String>>[],
+  },
+  'translator': {
+    'title': 'AI 翻译',
+    'placeholder': '输入要翻译的内容...',
+    'systemPrompt': '你是一位专业翻译助手。请直接输出翻译结果，不要添加解释。若用户没有指定源语言和目标语言，请根据内容自动判断并翻译成中文或英文。',
+    'templates': [
+      {'title': '中译英', 'text': '将以下内容翻译成英文：'},
+      {'title': '英译中', 'text': '将以下内容翻译成中文：'},
+      {'title': '润色', 'text': '润色并优化以下表达：'},
+    ],
+  },
+  'code_explain': {
+    'title': '代码解释',
+    'placeholder': '粘贴代码，我会帮你解释...',
+    'systemPrompt': '你是一位资深程序员。请解释用户提供的代码，说明其作用、关键逻辑和潜在问题。回答要简洁，代码块使用 Markdown 格式。',
+    'templates': [
+      {'title': '解释代码', 'text': '请解释这段代码：\n```\n\n```'},
+      {'title': '查找 Bug', 'text': '请检查这段代码是否有 Bug：\n```\n\n```'},
+      {'title': '优化建议', 'text': '请优化这段代码：\n```\n\n```'},
+    ],
+  },
+  'weekly_report': {
+    'title': '周报生成',
+    'placeholder': '输入本周工作要点...',
+    'systemPrompt': '你是一位职场写作助手。根据用户提供的工作要点，生成一份结构清晰、重点突出的周报，包含本周工作、遇到的问题、下周计划三部分。',
+    'templates': [
+      {'title': '开发周报', 'text': '请根据以下要点生成开发周报：'},
+      {'title': '产品周报', 'text': '请根据以下要点生成产品周报：'},
+      {'title': '运营周报', 'text': '请根据以下要点生成运营周报：'},
+    ],
+  },
+  'rewrite': {
+    'title': '文案改写',
+    'placeholder': '输入需要改写的文案...',
+    'systemPrompt': '你是一位文案润色专家。请根据用户需求改写文案，保持原意的同时让表达更流畅、专业、有吸引力。',
+    'templates': [
+      {'title': '更正式', 'text': '请将以下文案改写得更加正式：'},
+      {'title': '更口语化', 'text': '请将以下文案改得更口语化：'},
+      {'title': '更简短', 'text': '请将以下文案精简：'},
+    ],
+  },
+};
+
 class ChatDetailBloc extends Bloc<ChatDetailEvent, ChatDetailState> {
   final ChatRepository _chatRepository;
   StreamSubscription<Map<String, dynamic>>? _streamSubscription;
@@ -38,6 +88,7 @@ class ChatDetailBloc extends Bloc<ChatDetailEvent, ChatDetailState> {
       conversationId: event.conversationId,
       agentId: event.agentId,
       currentModel: event.initialModel,
+      scene: event.scene,
     ));
 
     if (event.conversationId != null) {
@@ -93,8 +144,12 @@ class ChatDetailBloc extends Bloc<ChatDetailEvent, ChatDetailState> {
     try {
       final messages = await _chatRepository.getMessages(event.conversationId);
       emit(state.copyWith(messages: messages, isLoadingHistory: false));
-    } catch (e) {
-      emit(state.copyWith(isLoadingHistory: false));
+    } catch (e, stack) {
+      log('加载历史消息失败: $e', name: 'ChatDetailBloc', error: e, stackTrace: stack);
+      emit(state.copyWith(
+        isLoadingHistory: false,
+        error: '历史消息加载失败，请重试',
+      ));
     }
   }
 
@@ -141,10 +196,14 @@ class ChatDetailBloc extends Bloc<ChatDetailEvent, ChatDetailState> {
 
       await _streamSubscription?.cancel();
 
+      final sceneConfig = _sceneConfigs[state.scene] ?? _sceneConfigs['assistant']!;
+      final systemPrompt = sceneConfig['systemPrompt'] as String?;
+
       _streamSubscription = _chatRepository.streamChat(
         conversationId: conversationId!,
         content: content,
         model: state.currentModel,
+        systemPrompt: systemPrompt,
       ).listen(
         (chunk) => add(ChatDetailStreamChunk(chunk)),
         onDone: () => add(const ChatDetailStreamCompleted()),
@@ -297,8 +356,9 @@ class ChatDetailBloc extends Bloc<ChatDetailEvent, ChatDetailState> {
         filename: event.filename,
       );
       add(ChatDetailImageAdded(url));
-    } catch (e) {
-      // ignore
+    } catch (e, stack) {
+      log('图片上传失败: $e', name: 'ChatDetailBloc', error: e, stackTrace: stack);
+      emit(state.copyWith(error: '图片上传失败，请重试'));
     }
   }
 

@@ -17,10 +17,14 @@ import 'presentation/blocs/chat_list/chat_list_bloc.dart';
 import 'presentation/blocs/chat_detail/chat_detail_bloc.dart';
 import 'presentation/blocs/model/model_cubit.dart';
 import 'presentation/blocs/agent/agent_bloc.dart';
+import 'presentation/blocs/meeting/meeting_cubit.dart';
 import 'presentation/blocs/theme/theme_cubit.dart';
 import 'presentation/blocs/voice_call_settings/voice_call_settings_cubit.dart';
 import 'presentation/blocs/voice_call/voice_call_bloc.dart';
-import 'presentation/blocs/meeting/meeting_cubit.dart';
+import 'data/datasources/remote/image_generation_api.dart';
+import 'data/repositories/image_generation_repository_impl.dart';
+import 'domain/repositories/image_generation_repository.dart';
+import 'presentation/blocs/image_generation/image_generation_bloc.dart';
 import 'services/audio_player_service.dart';
 import 'services/audio_recorder_service.dart';
 import 'services/websocket_service.dart';
@@ -49,6 +53,7 @@ Future<void> configureDependencies() async {
   getIt.registerSingleton(ChatApi(getIt<ApiClient>().dio));
   getIt.registerSingleton(AgentApi(getIt<ApiClient>().dio));
   getIt.registerSingleton(MeetingApi(getIt<ApiClient>().dio));
+  getIt.registerSingleton(ImageGenerationApi(getIt<ApiClient>().dio));
 
   // Repositories
   getIt.registerLazySingleton<AuthRepository>(
@@ -68,6 +73,10 @@ Future<void> configureDependencies() async {
     () => AgentRepositoryImpl(getIt<AgentApi>()),
   );
 
+  getIt.registerLazySingleton<ImageGenerationRepository>(
+    () => ImageGenerationRepositoryImpl(getIt<ImageGenerationApi>()),
+  );
+
   // Services
   getIt.registerLazySingleton(() => WebSocketService(getIt<SecureStorage>()));
   getIt.registerLazySingleton(() => createAudioRecorderService());
@@ -80,6 +89,7 @@ Future<void> configureDependencies() async {
   getIt.registerLazySingleton(() => ModelCubit(getIt<ChatRepository>()));
   getIt.registerFactory(() => AgentBloc(getIt<AgentRepository>()));
   getIt.registerFactory(() => MeetingCubit(getIt<MeetingApi>()));
+  getIt.registerFactory(() => ImageGenerationBloc(getIt<ImageGenerationRepository>()));
   getIt.registerFactory(() => VoiceCallBloc(
         getIt<WebSocketService>(),
         getIt<AudioRecorderService>(),

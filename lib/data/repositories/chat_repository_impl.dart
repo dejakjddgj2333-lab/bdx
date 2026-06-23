@@ -122,9 +122,10 @@ class ChatRepositoryImpl implements ChatRepository {
     required String conversationId,
     required dynamic content,
     String? model,
+    String? systemPrompt,
   }) async* {
     if (kIsWeb) {
-      yield* _streamChatWeb(conversationId, content, model);
+      yield* _streamChatWeb(conversationId, content, model, systemPrompt);
       return;
     }
 
@@ -132,6 +133,8 @@ class ChatRepositoryImpl implements ChatRepository {
       'conversationId': conversationId,
       'content': content,
       'model': model,
+      if (systemPrompt != null && systemPrompt.isNotEmpty)
+        'systemPrompt': systemPrompt,
     });
 
     final rawStream = response.data.stream as Stream;
@@ -172,6 +175,7 @@ class ChatRepositoryImpl implements ChatRepository {
     String conversationId,
     dynamic content,
     String? model,
+    String? systemPrompt,
   ) async* {
     final baseUrl = _chatApi.dio.options.baseUrl;
     final url = '$baseUrl${ApiConstants.streamChat}';
@@ -183,6 +187,8 @@ class ChatRepositoryImpl implements ChatRepository {
         'conversationId': conversationId,
         'content': content,
         'model': model,
+        if (systemPrompt != null && systemPrompt.isNotEmpty)
+          'systemPrompt': systemPrompt,
       },
       token: token,
     );

@@ -3,6 +3,7 @@ part of 'chat_detail_bloc.dart';
 abstract class ChatDetailState extends Equatable {
   final String? conversationId;
   final String? agentId;
+  final String scene;
   final List<Message> messages;
   final List<Map<String, dynamic>> models;
   final List<Map<String, dynamic>> suggestions;
@@ -15,6 +16,7 @@ abstract class ChatDetailState extends Equatable {
   const ChatDetailState({
     this.conversationId,
     this.agentId,
+    this.scene = 'assistant',
     this.messages = const [],
     this.models = const [],
     this.suggestions = const [],
@@ -28,6 +30,7 @@ abstract class ChatDetailState extends Equatable {
   ChatDetailState copyWith({
     String? conversationId,
     String? agentId,
+    String? scene,
     List<Message>? messages,
     List<Map<String, dynamic>>? models,
     List<Map<String, dynamic>>? suggestions,
@@ -43,6 +46,7 @@ abstract class ChatDetailState extends Equatable {
   List<Object?> get props => [
         conversationId,
         agentId,
+        scene,
         messages,
         models,
         suggestions,
@@ -61,6 +65,7 @@ class ChatDetailInitial extends ChatDetailState {
   ChatDetailState copyWith({
     String? conversationId,
     String? agentId,
+    String? scene,
     List<Message>? messages,
     List<Map<String, dynamic>>? models,
     List<Map<String, dynamic>>? suggestions,
@@ -74,6 +79,7 @@ class ChatDetailInitial extends ChatDetailState {
     return ChatDetailUpdated(
       conversationId: conversationId ?? this.conversationId,
       agentId: agentId ?? this.agentId,
+      scene: scene ?? this.scene,
       messages: messages ?? this.messages,
       models: models ?? this.models,
       suggestions: suggestions ?? this.suggestions,
@@ -90,6 +96,7 @@ class ChatDetailUpdated extends ChatDetailState {
   const ChatDetailUpdated({
     super.conversationId,
     super.agentId,
+    super.scene,
     super.messages,
     super.models,
     super.suggestions,
@@ -104,6 +111,7 @@ class ChatDetailUpdated extends ChatDetailState {
   ChatDetailState copyWith({
     String? conversationId,
     String? agentId,
+    String? scene,
     List<Message>? messages,
     List<Map<String, dynamic>>? models,
     List<Map<String, dynamic>>? suggestions,
@@ -117,6 +125,7 @@ class ChatDetailUpdated extends ChatDetailState {
     return ChatDetailUpdated(
       conversationId: conversationId ?? this.conversationId,
       agentId: agentId ?? this.agentId,
+      scene: scene ?? this.scene,
       messages: messages ?? this.messages,
       models: models ?? this.models,
       suggestions: suggestions ?? this.suggestions,

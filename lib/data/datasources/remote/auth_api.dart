@@ -26,6 +26,10 @@ class AuthApi {
     return _dio.put(ApiConstants.userProfile, data: body);
   }
 
+  Future<Response> uploadAvatar(FormData formData) async {
+    return _dio.post(ApiConstants.userAvatar, data: formData);
+  }
+
   Future<Response> getSettings() async {
     return _dio.get(ApiConstants.userSettings);
   }

@@ -25,45 +25,48 @@ class BdxEmptyState extends StatelessWidget {
     final colors = AppColors.of(context);
 
     return BdxAnimations.fadeSlideIn(
-      Center(
-        child: Padding(
-          padding: AppDimens.pagePadding,
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              if (illustration != null)
-                illustration!
-              else
-                GlassCard(
-                  borderRadius: AppDimens.r24,
-                  padding: const EdgeInsets.all(AppDimens.s24),
-                  child: Icon(icon, color: colors.textTertiary, size: 40),
-                ),
-              const SizedBox(height: AppDimens.s20),
-              Text(
-                title,
-                style: TextStyle(
-                  color: colors.text,
-                  fontSize: 17,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              if (subtitle != null) ...[
-                const SizedBox(height: AppDimens.s8),
+      SingleChildScrollView(
+        child: Center(
+          child: Padding(
+            padding: AppDimens.pagePadding,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                if (illustration != null)
+                  illustration!
+                else
+                  GlassCard(
+                    borderRadius: AppDimens.r24,
+                    padding: const EdgeInsets.all(AppDimens.s24),
+                    child: Icon(icon, color: colors.textTertiary, size: 40),
+                  ),
+                const SizedBox(height: AppDimens.s20),
                 Text(
-                  subtitle!,
-                  textAlign: TextAlign.center,
+                  title,
                   style: TextStyle(
-                    color: colors.textTertiary,
-                    fontSize: 13,
+                    color: colors.text,
+                    fontSize: 17,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
+                if (subtitle != null) ...[
+                  const SizedBox(height: AppDimens.s8),
+                  Text(
+                    subtitle!,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: colors.textTertiary,
+                      fontSize: 13,
+                    ),
+                  ),
+                ],
+                if (action != null) ...[
+                  const SizedBox(height: AppDimens.s24),
+                  action!,
+                ],
               ],
-              if (action != null) ...[
-                const SizedBox(height: AppDimens.s24),
-                action!,
-              ],
-            ],
+            ),
           ),
         ),
       ),

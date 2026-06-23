@@ -12,7 +12,12 @@ abstract class ChatRepository {
   Future<void> deleteConversation(String id);
   Future<List<Message>> getMessages(String id, {int page = 1, int pageSize = 50});
   Future<Message> sendMessage({required String conversationId, required dynamic content, String? model});
-  Stream<Map<String, dynamic>> streamChat({required String conversationId, required dynamic content, String? model});
+  Stream<Map<String, dynamic>> streamChat({
+    required String conversationId,
+    required dynamic content,
+    String? model,
+    String? systemPrompt,
+  });
   Future<String> uploadImageBytes(Uint8List bytes, {String? filename});
   Future<VoiceProviderConfig> getVoiceProviderConfig();
 }

@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:ui';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -25,12 +25,14 @@ class ChatDetailPage extends StatefulWidget {
   final String? conversationId;
   final String? agentId;
   final String? initialContent;
+  final String scene;
 
   const ChatDetailPage({
     super.key,
     this.conversationId,
     this.agentId,
     this.initialContent,
+    this.scene = 'assistant',
   });
 
   @override
@@ -58,6 +60,7 @@ class _ChatDetailPageState extends State<ChatDetailPage>
           initialModels: context.read<ModelCubit>().state.models.isNotEmpty
               ? context.read<ModelCubit>().state.models
               : null,
+          scene: widget.scene,
         ));
 
     if (widget.initialContent != null && widget.initialContent!.isNotEmpty) {
@@ -111,25 +114,19 @@ class _ChatDetailPageState extends State<ChatDetailPage>
                 .addPostFrameCallback((_) => _scrollToBottom());
           },
           builder: (context, state) {
-            final currentModelName = state.models
-                    .firstWhere(
-                      (m) => m['id']?.toString() == state.currentModel,
-                      orElse: () => {'name': '选择模型'},
-                    )['name']
-                    ?.toString() ??
-                '选择模型';
-
-            final supportsVision = state.models
-                    .firstWhere(
-                      (m) => m['id']?.toString() == state.currentModel,
-                      orElse: () => {'supportsVision': false},
-                    )['supportsVision'] as bool? ??
-                false;
+            final currentModelConfig = state.models.firstWhere(
+              (m) => m['id']?.toString() == state.currentModel,
+              orElse: () => {'name': '选择模型', 'supportsVision': false},
+            );
+            final currentModelName =
+                currentModelConfig['name']?.toString() ?? '选择模型';
+            final supportsVision =
+                currentModelConfig['supportsVision'] as bool? ?? false;
 
             return Column(
               children: [
                 AppHeader(
-                  title: '',
+                  title: _sceneTitle(state.scene),
                   leading: BdxIconButton(
                     icon: Icons.arrow_back,
                     onTap: () => context.canPop() ? context.pop() : context.go('/'),
@@ -242,7 +239,21 @@ class _ChatDetailPageState extends State<ChatDetailPage>
     );
   }
 
+  String _sceneTitle(String scene) {
+    const titles = {
+      'assistant': '',
+      'translator': 'AI 翻译',
+      'code_explain': '代码解释',
+      'weekly_report': '周报生成',
+      'rewrite': '文案改写',
+    };
+    return titles[scene] ?? '';
+  }
+
   Widget _buildWelcome(ChatDetailState state) {
+    final sceneConfig = _getSceneConfig(state.scene);
+    final templates = sceneConfig['templates'] as List<Map<String, String>>? ?? [];
+
     return BdxAnimations.fadeSlideIn(
       SingleChildScrollView(
         padding: AppDimens.pagePadding,
@@ -269,22 +280,108 @@ class _ChatDetailPageState extends State<ChatDetailPage>
                 ),
             const SizedBox(height: AppDimens.s24),
             Text(
-              '嗨，今天要和北斗星AI一起做什么？',
+              sceneConfig['welcomeTitle'] as String? ?? '嗨，今天要和北斗星AI一起做什么？',
               style: AppTextStyles.headline(context),
             ),
             const SizedBox(height: AppDimens.s8),
             Text(
-              '选一个话题开始吧',
+              sceneConfig['welcomeSubtitle'] as String? ?? '选一个话题开始吧',
               style: AppTextStyles.bodySmall(context),
             ),
             const SizedBox(height: AppDimens.s28),
-            ...state.suggestions.asMap().entries.map(
-                  (e) => BdxAnimations.fadeSlideIn(
-                    _buildSuggestionItem(e.value),
-                    delayMs: e.key * 80,
-                    beginY: 0.08,
+            if (templates.isNotEmpty)
+              ...templates.asMap().entries.map(
+                    (e) => BdxAnimations.fadeSlideIn(
+                      _buildTemplateItem(e.value),
+                      delayMs: e.key * 80,
+                      beginY: 0.08,
+                    ),
+                  )
+            else
+              ...state.suggestions.asMap().entries.map(
+                    (e) => BdxAnimations.fadeSlideIn(
+                      _buildSuggestionItem(e.value),
+                      delayMs: e.key * 80,
+                      beginY: 0.08,
+                    ),
                   ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Map<String, dynamic> _getSceneConfig(String scene) {
+    const configs = {
+      'translator': {
+        'welcomeTitle': 'AI 翻译',
+        'welcomeSubtitle': '输入内容，快速获得精准翻译',
+        'templates': [
+          {'title': '中译英', 'prompt': '将以下内容翻译成英文：'},
+          {'title': '英译中', 'prompt': '将以下内容翻译成中文：'},
+          {'title': '润色表达', 'prompt': '润色并优化以下表达：'},
+        ],
+      },
+      'code_explain': {
+        'welcomeTitle': '代码解释',
+        'welcomeSubtitle': '粘贴代码，AI 帮你解释和优化',
+        'templates': [
+          {'title': '解释代码', 'prompt': '请解释这段代码：\n```\n\n```'},
+          {'title': '查找 Bug', 'prompt': '请检查这段代码是否有 Bug：\n```\n\n```'},
+          {'title': '优化建议', 'prompt': '请优化这段代码：\n```\n\n```'},
+        ],
+      },
+      'weekly_report': {
+        'welcomeTitle': '周报生成',
+        'welcomeSubtitle': '输入工作要点，一键生成周报',
+        'templates': [
+          {'title': '开发周报', 'prompt': '请根据以下要点生成开发周报：'},
+          {'title': '产品周报', 'prompt': '请根据以下要点生成产品周报：'},
+          {'title': '运营周报', 'prompt': '请根据以下要点生成运营周报：'},
+        ],
+      },
+      'rewrite': {
+        'welcomeTitle': '文案改写',
+        'welcomeSubtitle': '输入文案，AI 帮你润色改写',
+        'templates': [
+          {'title': '更正式', 'prompt': '请将以下文案改写得更加正式：'},
+          {'title': '更口语化', 'prompt': '请将以下文案改得更口语化：'},
+          {'title': '更简短', 'prompt': '请将以下文案精简：'},
+        ],
+      },
+    };
+    return configs[scene] ?? {};
+  }
+
+  Widget _buildTemplateItem(Map<String, String> template) {
+    final colors = AppColors.of(context);
+    final title = template['title'] ?? '';
+    final prompt = template['prompt'] ?? '';
+
+    return PressScale(
+      onTap: () {
+        _textController.text = prompt;
+        _focusNode.requestFocus();
+      },
+      child: GlassCard(
+        margin: const EdgeInsets.only(bottom: AppDimens.s12),
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppDimens.s20,
+          vertical: AppDimens.s16,
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                title,
+                style: TextStyle(
+                  color: colors.text,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
                 ),
+              ),
+            ),
+            Icon(Icons.arrow_forward_ios, color: colors.textTertiary, size: 14),
           ],
         ),
       ),
@@ -359,8 +456,6 @@ class _ChatDetailPageState extends State<ChatDetailPage>
 
   Widget _buildInputArea(ChatDetailState state, bool supportsVision) {
     final colors = AppColors.of(context);
-    final hasContent = _textController.text.isNotEmpty ||
-        state.pendingImages.isNotEmpty;
 
     return Container(
       padding: EdgeInsets.only(
@@ -424,9 +519,10 @@ class _ChatDetailPageState extends State<ChatDetailPage>
                         maxLines: 5,
                         minLines: 1,
                         textInputAction: TextInputAction.send,
+                        scrollPadding: const EdgeInsets.only(bottom: 100),
                         onSubmitted: (_) => _sendMessage(state),
                         decoration: InputDecoration(
-                          hintText: '尽管问，带图也行',
+                          hintText: _scenePlaceholder(state.scene),
                           filled: false,
                           contentPadding: const EdgeInsets.symmetric(
                             horizontal: AppDimens.s12,
@@ -438,38 +534,44 @@ class _ChatDetailPageState extends State<ChatDetailPage>
                           hintStyle: TextStyle(color: colors.textTertiary),
                         ),
                         style: TextStyle(color: colors.text),
-                        onChanged: (_) => setState(() {}),
                       ),
                     ),
-                    AnimatedSwitcher(
-                      duration: 200.ms,
-                      transitionBuilder: (child, animation) =>
-                          ScaleTransition(scale: animation, child: child),
-                      child: hasContent && !state.isSending
-                          ? PressScale(
-                              key: const ValueKey('send'),
-                              onTap: () => _sendMessage(state),
-                              haptic: true,
-                              child: Container(
-                                width: 40,
-                                height: 40,
-                                margin: const EdgeInsets.all(4),
-                                decoration: BoxDecoration(
-                                  gradient: AppColors.primaryGradient,
-                                  shape: BoxShape.circle,
-                                  boxShadow:
-                                      AppShadows.glowPrimary(opacity: 0.35),
+                    ValueListenableBuilder<TextEditingValue>(
+                      valueListenable: _textController,
+                      builder: (context, value, child) {
+                        final hasContent = value.text.isNotEmpty ||
+                            state.pendingImages.isNotEmpty;
+                        return AnimatedSwitcher(
+                          duration: 200.ms,
+                          transitionBuilder: (child, animation) =>
+                              ScaleTransition(scale: animation, child: child),
+                          child: hasContent && !state.isSending
+                              ? PressScale(
+                                  key: const ValueKey('send'),
+                                  onTap: () => _sendMessage(state),
+                                  haptic: true,
+                                  child: Container(
+                                    width: 40,
+                                    height: 40,
+                                    margin: const EdgeInsets.all(4),
+                                    decoration: BoxDecoration(
+                                      gradient: AppColors.primaryGradient,
+                                      shape: BoxShape.circle,
+                                      boxShadow:
+                                          AppShadows.glowPrimary(opacity: 0.35),
+                                    ),
+                                    child: const Icon(
+                                      Icons.arrow_upward,
+                                      color: Colors.white,
+                                      size: 20,
+                                    ),
+                                  ),
+                                )
+                              : const SizedBox.shrink(
+                                  key: ValueKey('empty'),
                                 ),
-                                child: const Icon(
-                                  Icons.arrow_upward,
-                                  color: Colors.white,
-                                  size: 20,
-                                ),
-                              ),
-                            )
-                          : const SizedBox.shrink(
-                              key: ValueKey('empty'),
-                            ),
+                        );
+                      },
                     ),
                   ],
                 ),
@@ -497,7 +599,7 @@ class _ChatDetailPageState extends State<ChatDetailPage>
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(AppDimens.r10),
             image: DecorationImage(
-              image: NetworkImage(imageUrl),
+              image: CachedNetworkImageProvider(imageUrl),
               fit: BoxFit.cover,
             ),
           ),
@@ -526,13 +628,21 @@ class _ChatDetailPageState extends State<ChatDetailPage>
         );
   }
 
+  String _scenePlaceholder(String scene) {
+    const placeholders = {
+      'translator': '输入要翻译的内容...',
+      'code_explain': '粘贴代码，我会帮你解释...',
+      'weekly_report': '输入本周工作要点...',
+      'rewrite': '输入需要改写的文案...',
+    };
+    return placeholders[scene] ?? '尽管问，带图也行';
+  }
+
   void _sendMessage(ChatDetailState state) {
     final text = _textController.text.trim();
     if (text.isEmpty && state.pendingImages.isEmpty) return;
-    HapticFeedback.lightImpact();
     context.read<ChatDetailBloc>().add(ChatDetailMessageSent(text));
     _textController.clear();
-    setState(() {});
   }
 
   Future<void> _pickImage() async {

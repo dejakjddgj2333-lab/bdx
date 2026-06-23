@@ -68,6 +68,8 @@ class UserMessage extends StatelessWidget {
             imageUrl: _getImageUrl(url),
             width: 160,
             height: 160,
+            memCacheWidth: 320,
+            memCacheHeight: 320,
             fit: BoxFit.cover,
             placeholder: (_, _) => Container(
               width: 160,

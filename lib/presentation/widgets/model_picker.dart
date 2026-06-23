@@ -1,6 +1,5 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_dimens.dart';
@@ -115,7 +114,6 @@ class ModelPicker extends StatelessWidget {
 
     return PressScale(
       onTap: () {
-        HapticFeedback.lightImpact();
         onSelected(id);
         Navigator.pop(context);
       },

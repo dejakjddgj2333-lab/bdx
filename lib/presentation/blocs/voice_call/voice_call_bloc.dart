@@ -474,11 +474,23 @@ class VoiceCallBloc extends Bloc<VoiceCallEvent, VoiceCallState> {
     _vadThresholdTimer?.cancel();
     _micPausedForAi = false;
     _isResettingPlayer = false;
-    await _messageSubscription?.cancel();
-    await _audioSubscription?.cancel();
-    await _audioRecorderService.stopRecording();
-    await _audioPlayerService.dispose();
-    _webSocketService.disconnect();
+
+    try {
+      await _messageSubscription?.cancel();
+    } catch (_) {}
+    try {
+      await _audioSubscription?.cancel();
+    } catch (_) {}
+    try {
+      await _audioRecorderService.stopRecording();
+    } catch (_) {}
+    try {
+      await _audioPlayerService.dispose();
+    } catch (_) {}
+    try {
+      _webSocketService.disconnect();
+    } catch (_) {}
+
     return super.close();
   }
 }

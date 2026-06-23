@@ -209,20 +209,7 @@ class _ChatListPageState extends State<ChatListPage> {
         child: SizedBox(
           width: 250,
           height: 180,
-          child: _TwinklingStars(
-            child: Center(
-              child: SizedBox(
-                width: 220,
-                child: AspectRatio(
-                  aspectRatio: 699 / 475,
-                  child: Image.asset(
-                    'assets/images/mascot.png',
-                    fit: BoxFit.contain,
-                  ),
-                ),
-              ),
-            ),
-          ),
+          child: BdxEmptyIllustration(size: 160 * scale.clamp(0.7, 1.2)),
         ),
       ),
     );
@@ -450,54 +437,70 @@ class _ChatListPageState extends State<ChatListPage> {
     );
   }
 
+  void _onQuickItemTap(BuildContext context, _QuickItem item) {
+    switch (item.title) {
+      case 'AI 助手':
+        context.push('/chat/detail?scene=assistant');
+      case 'AI 绘图':
+        context.push('/image-generation');
+      case 'AI 写作':
+        context.push('/chat/detail?scene=rewrite');
+      case '实用工具':
+        context.push('/tools');
+    }
+  }
+
   Widget _buildQuickCard(BuildContext context, _QuickItem item) {
     final colors = AppColors.of(context);
 
-    return GlassCard(
-      borderRadius: AppDimens.r16,
-      padding: const EdgeInsets.all(AppDimens.s10),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            width: 36,
-            height: 36,
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  item.color.withValues(alpha: 0.9),
-                  item.color.withValues(alpha: 0.5),
-                ],
+    return PressScale(
+      onTap: () => _onQuickItemTap(context, item),
+      child: GlassCard(
+        borderRadius: AppDimens.r16,
+        padding: const EdgeInsets.all(AppDimens.s10),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    item.color.withValues(alpha: 0.9),
+                    item.color.withValues(alpha: 0.5),
+                  ],
+                ),
+                borderRadius: BorderRadius.circular(AppDimens.r10),
               ),
-              borderRadius: BorderRadius.circular(AppDimens.r10),
+              child: Icon(
+                item.icon,
+                color: Colors.white,
+                size: 20,
+              ),
             ),
-            child: Icon(
-              item.icon,
-              color: Colors.white,
-              size: 20,
+            const SizedBox(height: AppDimens.s8),
+            Text(
+              item.title,
+              style: TextStyle(
+                color: colors.text,
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+              ),
             ),
-          ),
-          const SizedBox(height: AppDimens.s8),
-          Text(
-            item.title,
-            style: TextStyle(
-              color: colors.text,
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
+            const SizedBox(height: AppDimens.s2),
+            Text(
+              item.subtitle,
+              style: TextStyle(
+                color: colors.textTertiary,
+                fontSize: 11,
+              ),
             ),
-          ),
-          const SizedBox(height: AppDimens.s2),
-          Text(
-            item.subtitle,
-            style: TextStyle(
-              color: colors.textTertiary,
-              fontSize: 11,
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -538,7 +541,6 @@ class _ChatListPageState extends State<ChatListPage> {
                 icon: Icons.chat_bubble_outline,
                 title: '暂无会话',
                 subtitle: '点击右上角新建对话',
-                illustration: const BdxEmptyIllustration(size: 160),
               ),
             );
           }
@@ -582,6 +584,8 @@ class _ChatListPageState extends State<ChatListPage> {
                     ],
                   ),
                 ),
+                // 首页仅展示最近 5 条会话，数量可控，使用 shrinkWrap 避免嵌套滚动冲突。
+                // 若后续展示数量显著增加，应改为 SliverList.separated。
                 ConversationListBody(
                   conversations: recent,
                   bloc: context.read<ChatListBloc>(),
@@ -645,124 +649,3 @@ class _VoiceWaveBars extends StatelessWidget {
   }
 }
 
-class _TwinklingStars extends StatelessWidget {
-  final Widget child;
-
-  const _TwinklingStars({required this.child});
-
-  @override
-  Widget build(BuildContext context) {
-    return Stack(
-      alignment: Alignment.center,
-      children: [
-        child,
-        const Positioned(
-          top: 12,
-          left: 34,
-          child: _TwinklingStar(size: 5, color: AppColors.primaryLight),
-        ),
-        const Positioned(
-          top: 26,
-          right: 44,
-          child: _TwinklingStar(size: 4, color: AppColors.success, delay: 400),
-        ),
-        const Positioned(
-          bottom: 22,
-          left: 24,
-          child: _TwinklingStar(size: 4, color: AppColors.pink, delay: 800),
-        ),
-        const Positioned(
-          bottom: 30,
-          right: 32,
-          child: _TwinklingStar(size: 5, color: Colors.white, delay: 1200),
-        ),
-        const Positioned(
-          top: 76,
-          left: 8,
-          child: _TwinklingStar(size: 3, color: AppColors.primaryLight, delay: 600),
-        ),
-        const Positioned(
-          top: 88,
-          right: 10,
-          child: _TwinklingStar(size: 3, color: AppColors.success, delay: 1000),
-        ),
-        const Positioned(
-          top: 48,
-          right: 4,
-          child: _TwinklingStar(size: 3, color: AppColors.pink, delay: 300),
-        ),
-      ],
-    );
-  }
-}
-
-class _TwinklingStar extends StatefulWidget {
-  final double size;
-  final Color color;
-  final int delay;
-
-  const _TwinklingStar({
-    required this.size,
-    required this.color,
-    this.delay = 0,
-  });
-
-  @override
-  State<_TwinklingStar> createState() => _TwinklingStarState();
-}
-
-class _TwinklingStarState extends State<_TwinklingStar>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _controller;
-  late final Animation<double> _animation;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1500),
-    );
-    _animation = Tween<double>(begin: 0.2, end: 1.0).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
-    );
-
-    if (widget.delay > 0) {
-      Future.delayed(Duration(milliseconds: widget.delay), () {
-        if (mounted) _controller.repeat(reverse: true);
-      });
-    } else {
-      _controller.repeat(reverse: true);
-    }
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _animation,
-      builder: (context, child) {
-        return Container(
-          width: widget.size,
-          height: widget.size,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: widget.color.withValues(alpha: _animation.value),
-            boxShadow: [
-              BoxShadow(
-                color: widget.color.withValues(alpha: _animation.value * 0.7),
-                blurRadius: widget.size * 2,
-                spreadRadius: 1,
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-}

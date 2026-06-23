@@ -178,13 +178,19 @@ class WebSocketService {
   void disconnect() {
     log('WebSocket 断开');
     _currentResponseId = null;
-    _channel?.sink.close();
+    try {
+      _channel?.sink.close();
+    } catch (e) {
+      log('WebSocket sink 关闭失败: $e');
+    }
     _channel = null;
   }
 
-  /// 应用退出时调用。注意：当前 WebSocketService 是单例，关闭 controller 后将无法复用，
-  /// 因此这里只释放 channel；如有彻底销毁需求，请重新实例化服务。
+  /// 应用退出时调用。关闭 channel 和 controller；
+  /// 此后该实例不可复用，如需重新连接请重新实例化服务。
   void dispose() {
     disconnect();
+    if (!_messageController.isClosed) _messageController.close();
+    if (!_audioController.isClosed) _audioController.close();
   }
 }

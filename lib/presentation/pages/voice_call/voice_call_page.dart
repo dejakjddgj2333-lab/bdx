@@ -3,7 +3,6 @@ import 'dart:io';
 import 'dart:math' show pi, sin;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -245,7 +244,6 @@ class _VoiceCallPageState extends State<VoiceCallPage>
           size: 56,
           isActive: state.isMuted,
           onTap: () {
-            HapticFeedback.lightImpact();
             context.read<VoiceCallBloc>().add(const VoiceCallToggleMute());
           },
         ),
@@ -265,7 +263,6 @@ class _VoiceCallPageState extends State<VoiceCallPage>
           size: 56,
           isActive: state.isSpeaker,
           onTap: () {
-            HapticFeedback.lightImpact();
             context.read<VoiceCallBloc>().add(const VoiceCallToggleSpeaker());
           },
         ),
@@ -340,7 +337,6 @@ class _VoiceCallPageState extends State<VoiceCallPage>
   }
 
   void _hangup(BuildContext context) {
-    HapticFeedback.mediumImpact();
     _durationTimer?.cancel();
     setState(() => _microphoneDenied = false);
     context.read<VoiceCallBloc>().add(const VoiceCallHangup());

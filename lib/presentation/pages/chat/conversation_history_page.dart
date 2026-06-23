@@ -3,7 +3,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_dimens.dart';
-import '../../../domain/entities/conversation.dart';
 import '../../blocs/chat_list/chat_list_bloc.dart';
 import '../../widgets/app_header.dart';
 import '../../widgets/bdx/bdx.dart';
@@ -21,7 +20,6 @@ class ConversationHistoryPage extends StatefulWidget {
 
 class _ConversationHistoryPageState extends State<ConversationHistoryPage> {
   final _searchController = TextEditingController();
-  String _searchQuery = '';
 
   @override
   void dispose() {
@@ -30,21 +28,12 @@ class _ConversationHistoryPageState extends State<ConversationHistoryPage> {
   }
 
   void _onSearchChanged(String value) {
-    setState(() => _searchQuery = value);
     context.read<ChatListBloc>().add(ChatListSearchChanged(value));
   }
 
   void _clearSearch() {
     _searchController.clear();
     _onSearchChanged('');
-  }
-
-  List<Conversation> _filterConversations(List<Conversation> conversations) {
-    if (_searchQuery.isEmpty) return conversations;
-    final query = _searchQuery.toLowerCase();
-    return conversations
-        .where((c) => c.title?.toLowerCase().contains(query) ?? false)
-        .toList();
   }
 
   @override
@@ -81,16 +70,20 @@ class _ConversationHistoryPageState extends State<ConversationHistoryPage> {
                     color: colors.textTertiary,
                     size: AppDimens.iconMedium,
                   ),
-                  suffix: _searchQuery.isNotEmpty
-                      ? IconButton(
-                          onPressed: _clearSearch,
-                          icon: Icon(
-                            Icons.clear,
-                            color: colors.textTertiary,
-                            size: AppDimens.iconMedium,
-                          ),
-                        )
-                      : null,
+                  suffix: ValueListenableBuilder<TextEditingValue>(
+                    valueListenable: _searchController,
+                    builder: (context, value, child) {
+                      if (value.text.isEmpty) return const SizedBox.shrink();
+                      return IconButton(
+                        onPressed: _clearSearch,
+                        icon: Icon(
+                          Icons.clear,
+                          color: colors.textTertiary,
+                          size: AppDimens.iconMedium,
+                        ),
+                      );
+                    },
+                  ),
                   onChanged: _onSearchChanged,
                 ),
               ),
@@ -114,10 +107,12 @@ class _ConversationHistoryPageState extends State<ConversationHistoryPage> {
                       );
                     }
                     if (state is ChatListLoadedSuccess) {
-                      final conversations = _filterConversations(state.conversations);
+                      final conversations = state.searchQuery.isEmpty
+                          ? state.conversations
+                          : state.filtered;
+                      final isSearching = state.searchQuery.isNotEmpty;
 
                       if (conversations.isEmpty) {
-                        final isSearching = _searchQuery.isNotEmpty;
                         return BdxEmptyState(
                           icon: isSearching ? Icons.search_off : Icons.chat_bubble_outline,
                           title: isSearching ? '未找到匹配会话' : '暂无会话',

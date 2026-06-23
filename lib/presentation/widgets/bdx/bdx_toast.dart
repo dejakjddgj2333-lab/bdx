@@ -95,7 +95,10 @@ class _ToastWidgetState extends State<_ToastWidget>
         builder: (context, child) {
           return Transform.translate(
             offset: Offset(0, -20 * (1 - _animation.value)),
-            child: Opacity(opacity: _animation.value, child: child),
+            child: Opacity(
+              opacity: _animation.value.clamp(0.0, 1.0),
+              child: child,
+            ),
           );
         },
         child: GestureDetector(
@@ -122,6 +125,7 @@ class _ToastWidgetState extends State<_ToastWidget>
                       color: colors.text,
                       fontSize: 14,
                       fontWeight: FontWeight.w500,
+                      decoration: TextDecoration.none,
                     ),
                   ),
                 ),

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 /// 按下缩放反馈组件
 ///
@@ -35,7 +34,6 @@ class _PressScaleState extends State<PressScale> {
       onTapUp: (_) => setState(() => _pressed = false),
       onTapCancel: () => setState(() => _pressed = false),
       onTap: () {
-        if (widget.haptic) HapticFeedback.lightImpact();
         widget.onTap?.call();
       },
       child: AnimatedScale(

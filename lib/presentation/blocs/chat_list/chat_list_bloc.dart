@@ -24,7 +24,11 @@ class ChatListBloc extends Bloc<ChatListEvent, ChatListState> {
     emit(const ChatListLoading());
     try {
       final conversations = await _chatRepository.getConversations();
-      emit(ChatListLoadedSuccess(conversations, searchQuery: ''));
+      emit(ChatListLoadedSuccess(
+        conversations,
+        filtered: conversations,
+        searchQuery: '',
+      ));
     } catch (e) {
       emit(ChatListError(e.toString()));
     }

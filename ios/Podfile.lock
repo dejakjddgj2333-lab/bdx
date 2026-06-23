@@ -9,6 +9,9 @@ PODS:
     - Flutter
   - flutter_secure_storage (6.0.0):
     - Flutter
+  - flutter_webrtc (1.4.0):
+    - Flutter
+    - WebRTC-SDK (= 144.7559.01)
   - fluttertoast (0.0.2):
     - Flutter
   - libwebp (1.5.0):
@@ -23,6 +26,10 @@ PODS:
   - libwebp/sharpyuv (1.5.0)
   - libwebp/webp (1.5.0):
     - libwebp/sharpyuv
+  - livekit_client (2.8.0):
+    - Flutter
+    - flutter_webrtc
+    - WebRTC-SDK (= 144.7559.01)
   - Mantle (2.2.0):
     - Mantle/extobjc (= 2.2.0)
   - Mantle/extobjc (2.2.0)
@@ -34,13 +41,16 @@ PODS:
   - SDWebImageWebPCoder (0.15.0):
     - libwebp (~> 1.0)
     - SDWebImage/Core (~> 5.17)
+  - WebRTC-SDK (144.7559.01)
 
 DEPENDENCIES:
   - Flutter (from `Flutter`)
   - flutter_image_compress_common (from `.symlinks/plugins/flutter_image_compress_common/ios`)
   - flutter_pcm_sound (from `.symlinks/plugins/flutter_pcm_sound/ios`)
   - flutter_secure_storage (from `.symlinks/plugins/flutter_secure_storage/ios`)
+  - flutter_webrtc (from `.symlinks/plugins/flutter_webrtc/ios`)
   - fluttertoast (from `.symlinks/plugins/fluttertoast/ios`)
+  - livekit_client (from `.symlinks/plugins/livekit_client/ios`)
   - record_darwin (from `.symlinks/plugins/record_darwin/ios`)
 
 SPEC REPOS:
@@ -49,6 +59,7 @@ SPEC REPOS:
     - Mantle
     - SDWebImage
     - SDWebImageWebPCoder
+    - WebRTC-SDK
 
 EXTERNAL SOURCES:
   Flutter:
@@ -59,8 +70,12 @@ EXTERNAL SOURCES:
     :path: ".symlinks/plugins/flutter_pcm_sound/ios"
   flutter_secure_storage:
     :path: ".symlinks/plugins/flutter_secure_storage/ios"
+  flutter_webrtc:
+    :path: ".symlinks/plugins/flutter_webrtc/ios"
   fluttertoast:
     :path: ".symlinks/plugins/fluttertoast/ios"
+  livekit_client:
+    :path: ".symlinks/plugins/livekit_client/ios"
   record_darwin:
     :path: ".symlinks/plugins/record_darwin/ios"
 
@@ -69,13 +84,16 @@ SPEC CHECKSUMS:
   flutter_image_compress_common: ec1d45c362c9d30a3f6a0426c297f47c52007e3e
   flutter_pcm_sound: de0572ca4f99091cc2abfcc31601b8a4ddd33c0e
   flutter_secure_storage: d33dac7ae2ea08509be337e775f6b59f1ff45f12
+  flutter_webrtc: 5aa37bfb8b834bff989a03182d1c4266a4f93377
   fluttertoast: 21eecd6935e7064cc1fcb733a4c5a428f3f24f0f
   libwebp: 02b23773aedb6ff1fd38cec7a77b81414c6842a8
+  livekit_client: ae9fedc5f3d40405f3a1b7d68d730a08ef58600c
   Mantle: c5aa8794a29a022dfbbfc9799af95f477a69b62d
   record_darwin: 3b1a8e7d5c0cbf45ad6165b4d83a6ca643d929c3
   SDWebImage: e9fc87c1aab89a8ab1bbd74eba378c6f53be8abf
   SDWebImageWebPCoder: 0e06e365080397465cc73a7a9b472d8a3bd0f377
+  WebRTC-SDK: ab9b5319e458c2bfebdc92b3600740da35d5630d
 
-PODFILE CHECKSUM: 4a1a0ebaf356d67f563a9c66c10b58eeaa121efc
+PODFILE CHECKSUM: f03644202793a7f3138b81fb29b8b50cf9547cc8
 
 COCOAPODS: 1.16.2

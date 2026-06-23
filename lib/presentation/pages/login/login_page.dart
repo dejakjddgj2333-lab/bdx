@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
@@ -44,7 +43,6 @@ class _LoginPageState extends State<LoginPage>
   }
 
   void _submit() {
-    HapticFeedback.lightImpact();
     final username = _usernameController.text.trim();
     final password = _passwordController.text.trim();
 
@@ -140,6 +138,7 @@ class _LoginPageState extends State<LoginPage>
                           hint: '密码',
                           icon: Icons.lock_outline,
                           obscureText: true,
+                          showVisibilityToggle: true,
                         ),
                         const SizedBox(height: AppDimens.s16),
                         AnimatedBuilder(
@@ -180,9 +179,9 @@ class _LoginPageState extends State<LoginPage>
         width: 160,
         height: 160,
         fit: BoxFit.contain,
-        errorBuilder: (_, _, _) => const Icon(
+        errorBuilder: (context, error, stackTrace) => Icon(
           Icons.auto_awesome,
-          color: Colors.white,
+          color: AppColors.of(context).text,
           size: 64,
         ),
       ),
@@ -232,16 +231,42 @@ class _LoginPageState extends State<LoginPage>
     required String hint,
     required IconData icon,
     bool obscureText = false,
+    bool showVisibilityToggle = false,
   }) {
-    return BdxInput(
-      controller: controller,
-      hintText: hint,
-      obscureText: obscureText,
-      prefix: Icon(
-        icon,
-        color: AppColors.of(context).textTertiary,
-        size: AppDimens.iconMedium,
-      ),
+    if (!showVisibilityToggle) {
+      return BdxInput(
+        controller: controller,
+        hintText: hint,
+        obscureText: obscureText,
+        prefix: Icon(
+          icon,
+          color: AppColors.of(context).textTertiary,
+          size: AppDimens.iconMedium,
+        ),
+      );
+    }
+
+    return StatefulBuilder(
+      builder: (context, setState) {
+        return BdxInput(
+          controller: controller,
+          hintText: hint,
+          obscureText: obscureText,
+          prefix: Icon(
+            icon,
+            color: AppColors.of(context).textTertiary,
+            size: AppDimens.iconMedium,
+          ),
+          suffix: IconButton(
+            icon: Icon(
+              obscureText ? Icons.visibility_off : Icons.visibility,
+              color: AppColors.of(context).textTertiary,
+              size: AppDimens.iconMedium,
+            ),
+            onPressed: () => setState(() => obscureText = !obscureText),
+          ),
+        );
+      },
     );
   }
 

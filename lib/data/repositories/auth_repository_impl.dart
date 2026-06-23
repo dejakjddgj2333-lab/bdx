@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:dio/dio.dart';
 import '../../core/errors/exceptions.dart';
 import '../../data/datasources/local/hive_storage.dart';
@@ -56,6 +58,33 @@ class AuthRepositoryImpl implements AuthRepository {
     if (userData == null) return null;
     await _hiveStorage.setJson('userInfo', userData);
     return _mapUser(userData);
+  }
+
+  @override
+  Future<User?> updateProfile({String? nickname, String? avatar}) async {
+    final body = <String, dynamic>{
+      'nickname': ?nickname,
+      'avatar': ?avatar,
+    };
+    final res = await _authApi.updateProfile(body);
+    final data = _unwrap(res);
+    final userData = data['data'] as Map<String, dynamic>?;
+    if (userData == null) return null;
+    await _hiveStorage.setJson('userInfo', userData);
+    return _mapUser(userData);
+  }
+
+  @override
+  Future<String> uploadAvatar(Uint8List bytes, {String? filename}) async {
+    final formData = FormData.fromMap({
+      'file': MultipartFile.fromBytes(
+        bytes,
+        filename: filename ?? 'avatar.jpg',
+      ),
+    });
+    final res = await _authApi.uploadAvatar(formData);
+    final data = _unwrap(res);
+    return (data['data']?['avatar'] ?? '').toString();
   }
 
   @override

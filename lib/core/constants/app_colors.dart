@@ -23,6 +23,11 @@ class AppColorsPalette {
   final Color glassWhite;
   final Color buttonOverlay;
 
+  // 会议页面专用玻璃色调（深色主题下使用）
+  final Color meetingControlBarBg;
+  final Color meetingCardBg;
+  final Color meetingGlassBg;
+
   const AppColorsPalette({
     required this.bg,
     required this.bgElevated,
@@ -37,6 +42,9 @@ class AppColorsPalette {
     required this.borderSubtle,
     required this.glassWhite,
     required this.buttonOverlay,
+    required this.meetingControlBarBg,
+    required this.meetingCardBg,
+    required this.meetingGlassBg,
   });
 }
 
@@ -95,6 +103,9 @@ class AppColors {
     borderSubtle: Color(0x14FFFFFF), // 0.08
     glassWhite: Color(0x0BFFFFFF),
     buttonOverlay: Color(0x3D622CD5),
+    meetingControlBarBg: Color(0xFF0F0D1A),
+    meetingCardBg: Color(0xFF1C1730),
+    meetingGlassBg: Color(0xFF1A1530),
   );
 
   static const AppColorsPalette light = AppColorsPalette(
@@ -111,6 +122,9 @@ class AppColors {
     borderSubtle: Color(0x14000000), // 0.08
     glassWhite: Color(0x0A000000),
     buttonOverlay: Color(0x3D622CD5),
+    meetingControlBarBg: Color(0xFF0F0D1A),
+    meetingCardBg: Color(0xFF1C1730),
+    meetingGlassBg: Color(0xFF1A1530),
   );
 
   /// 获取当前主题对应的调色板

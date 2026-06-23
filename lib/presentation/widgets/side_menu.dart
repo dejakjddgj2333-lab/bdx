@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
@@ -37,7 +36,6 @@ class SideMenu extends StatelessWidget {
                 Icons.chat_bubble_outline,
                 '新建对话',
                 () {
-                  HapticFeedback.lightImpact();
                   Navigator.pop(context);
                   context.push('/chat/detail');
                 },
@@ -47,19 +45,8 @@ class SideMenu extends StatelessWidget {
                 Icons.history,
                 '历史记录',
                 () {
-                  HapticFeedback.lightImpact();
                   Navigator.pop(context);
                   context.push('/chat/history');
-                },
-              ),
-              _buildMenuItem(
-                context,
-                Icons.smart_toy_outlined,
-                '发现智能体',
-                () {
-                  HapticFeedback.lightImpact();
-                  Navigator.pop(context);
-                  context.push('/agents');
                 },
               ),
               _buildMenuItem(
@@ -67,7 +54,6 @@ class SideMenu extends StatelessWidget {
                 Icons.phone_in_talk_outlined,
                 '语音通话',
                 () {
-                  HapticFeedback.lightImpact();
                   Navigator.pop(context);
                   context.push('/voice-call');
                 },
@@ -83,7 +69,6 @@ class SideMenu extends StatelessWidget {
                 Icons.settings_outlined,
                 '设置',
                 () {
-                  HapticFeedback.lightImpact();
                   Navigator.pop(context);
                   context.push('/settings');
                 },
@@ -93,7 +78,6 @@ class SideMenu extends StatelessWidget {
                 Icons.person_outline,
                 '个人中心',
                 () {
-                  HapticFeedback.lightImpact();
                   Navigator.pop(context);
                   context.push('/profile');
                 },
@@ -102,18 +86,46 @@ class SideMenu extends StatelessWidget {
                 context,
                 Icons.logout,
                 '退出登录',
-                () {
-                  HapticFeedback.mediumImpact();
-                  Navigator.pop(context);
-                  context.read<AuthBloc>().add(const AuthLogoutRequested());
-                  context.go('/login');
-                },
+                () => _showLogoutConfirm(context),
                 color: AppColors.pink,
               ),
               const SizedBox(height: AppDimens.s12),
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  void _showLogoutConfirm(BuildContext context) {
+    final colors = AppColors.of(context);
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: colors.bgElevated,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppDimens.r20),
+        ),
+        title: Text('退出登录', style: TextStyle(color: colors.text)),
+        content: Text(
+          '确定要退出当前账号吗？',
+          style: TextStyle(color: colors.textSecondary),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('取消'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(dialogContext);
+              Navigator.pop(context);
+              context.read<AuthBloc>().add(const AuthLogoutRequested());
+              context.go('/login');
+            },
+            child: const Text('退出', style: TextStyle(color: AppColors.pink)),
+          ),
+        ],
       ),
     );
   }
@@ -125,41 +137,52 @@ class SideMenu extends StatelessWidget {
       builder: (context, state) {
         final nickname = state.user?.nickname ?? '未登录';
         final avatar = state.user?.avatar;
-        return Container(
-          padding: const EdgeInsets.all(AppDimens.s20),
-          child: Row(
-            children: [
-              BdxAvatar(
-                imageUrl: avatar,
-                icon: Icons.person,
-                size: AppDimens.avatarLarge,
-                borderRadius: AppDimens.r18,
-              ),
-              const SizedBox(width: AppDimens.s16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      nickname,
-                      style: TextStyle(
-                        color: colors.text,
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: AppDimens.s4),
-                    Text(
-                      state.isAuthenticated ? '已登录' : '未登录',
-                      style: TextStyle(
-                        color: colors.textTertiary,
-                        fontSize: 12,
-                      ),
-                    ),
-                  ],
+        return PressScale(
+          onTap: () {
+            Navigator.pop(context);
+            context.push('/profile');
+          },
+          child: Container(
+            padding: const EdgeInsets.all(AppDimens.s20),
+            child: Row(
+              children: [
+                BdxAvatar(
+                  imageUrl: avatar,
+                  icon: Icons.person,
+                  size: AppDimens.avatarLarge,
+                  borderRadius: AppDimens.r18,
                 ),
-              ),
-            ],
+                const SizedBox(width: AppDimens.s16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        nickname,
+                        style: TextStyle(
+                          color: colors.text,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: AppDimens.s4),
+                      Text(
+                        state.isAuthenticated ? '已登录' : '未登录',
+                        style: TextStyle(
+                          color: colors.textTertiary,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Icon(
+                  Icons.chevron_right,
+                  color: colors.textTertiary,
+                  size: AppDimens.iconMedium,
+                ),
+              ],
+            ),
           ),
         );
       },

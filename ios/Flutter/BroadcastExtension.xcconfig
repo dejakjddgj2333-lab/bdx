@@ -1,0 +1,4 @@
+// 屏幕共享扩展专用配置：继承 Flutter 生成的版本号变量
+// （FLUTTER_BUILD_NAME / FLUTTER_BUILD_NUMBER），使扩展的 CFBundle 版本
+// 始终与主 App 同步，避免每次发版手动改两处。
+#include "Generated.xcconfig"

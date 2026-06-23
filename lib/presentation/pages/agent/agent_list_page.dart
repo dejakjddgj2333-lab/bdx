@@ -87,20 +87,23 @@ class _AgentListPageState extends State<AgentListPage> {
         color: AppColors.of(context).textTertiary,
         size: AppDimens.iconMedium,
       ),
-      suffix: _searchController.text.isNotEmpty
-          ? IconButton(
-              onPressed: () {
-                _searchController.clear();
-                context.read<AgentBloc>().add(const AgentSearchChanged(''));
-                setState(() {});
-              },
-              icon: Icon(
-                Icons.clear,
-                color: AppColors.of(context).textTertiary,
-                size: AppDimens.iconMedium,
-              ),
-            )
-          : null,
+      suffix: ValueListenableBuilder<TextEditingValue>(
+        valueListenable: _searchController,
+        builder: (context, value, child) {
+          if (value.text.isEmpty) return const SizedBox.shrink();
+          return IconButton(
+            onPressed: () {
+              _searchController.clear();
+              context.read<AgentBloc>().add(const AgentSearchChanged(''));
+            },
+            icon: Icon(
+              Icons.clear,
+              color: AppColors.of(context).textTertiary,
+              size: AppDimens.iconMedium,
+            ),
+          );
+        },
+      ),
       onChanged: (value) =>
           context.read<AgentBloc>().add(AgentSearchChanged(value)),
     );

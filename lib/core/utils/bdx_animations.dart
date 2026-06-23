@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
 /// 全局动画效果封装
@@ -59,15 +58,6 @@ class BdxAnimations {
           duration: 250.ms,
           curve: Curves.easeOutCubic,
         );
-  }
-
-  /// 触发一次轻微震动反馈
-  static void lightImpact() {
-    HapticFeedback.lightImpact();
-  }
-
-  static void mediumImpact() {
-    HapticFeedback.mediumImpact();
   }
 }
 

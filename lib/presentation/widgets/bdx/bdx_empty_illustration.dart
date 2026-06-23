@@ -137,11 +137,11 @@ class _Orbit extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final animation = Tween<double>(begin: 0, end: turns)
+    final animation = Tween<double>(begin: phase, end: phase + turns)
         .animate(
           CurvedAnimation(
             parent: controller,
-            curve: Interval(phase, 1.0, curve: Curves.linear),
+            curve: const Interval(0.0, 1.0, curve: Curves.linear),
           ),
         );
 
