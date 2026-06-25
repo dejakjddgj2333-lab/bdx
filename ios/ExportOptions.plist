@@ -4,30 +4,16 @@
 <dict>
     <key>method</key>
     <string>app-store</string>
-    <key>teamID</key>
-    <string>3CDAMA869Z</string>
-    <key>signingStyle</key>
-    <string>manual</string>
-    <key>signingCertificate</key>
-    <string>iPhone Distribution: Chongqing Junxianzhi Technology Co., Ltd</string>
     <key>provisioningProfiles</key>
     <dict>
         <key>com.beidou.aichat</key>
-        <string>beidou</string>
+        <string>北斗星AI</string>
         <key>com.beidou.aichat.broadcast</key>
         <string>broadcast</string>
     </dict>
-    <key>stripSwiftSymbols</key>
-    <true/>
-    <key>uploadBitcode</key>
-    <false/>
-    <key>uploadSymbols</key>
-    <true/>
-    <key>compileBitcode</key>
-    <false/>
-    <key>destination</key>
-    <string>export</string>
-    <key>thinning</key>
-    <string>&lt;none&gt;</string>
+    <key>signingStyle</key>
+    <string>manual</string>
+    <key>teamID</key>
+    <string>3CDAMA869Z</string>
 </dict>
 </plist>

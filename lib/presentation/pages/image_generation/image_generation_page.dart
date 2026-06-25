@@ -147,6 +147,7 @@ class _ImageGenerationPageState extends State<ImageGenerationPage> {
                   onChanged: (value) => context
                       .read<ImageGenerationBloc>()
                       .add(ImageGenerationNegativePromptChanged(value)),
+                  onTapOutside: (_) => FocusScope.of(context).unfocus(),
                 ),
               ],
             ),

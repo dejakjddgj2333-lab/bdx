@@ -367,6 +367,7 @@ class _GlassInputState extends State<_GlassInput> {
                     cursorColor: Colors.white,
                     textInputAction: widget.textInputAction,
                     onSubmitted: widget.onSubmitted,
+                    onTapOutside: (_) => _focusNode.unfocus(),
                     decoration: InputDecoration(
                       hintText: widget.hint,
                       hintStyle:

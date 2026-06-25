@@ -6,7 +6,7 @@ const String devBaseUrl = 'http://localhost:3002/api';
 const String devWsUrl = 'ws://localhost:3002/ws/voice-call';
 const String devUploadBaseUrl = 'http://localhost:3002';
 
-const String prodBaseUrl = 'https://sk.bdxapi.com/api';
+const String prodBaseUrl = 'https://api.bdxapi.com/api';
 const String prodWsUrl = 'wss://sk.bdxapi.com/ws/voice-call';
 const String prodUploadBaseUrl = 'https://api.bdxapi.com';
 
@@ -19,8 +19,10 @@ class ApiConstants {
       useDevServer ? devUploadBaseUrl : prodUploadBaseUrl;
 
   // 接口路径
-  static const String register = '/auth/register';
-  static const String login = '/auth/login';
+  static const String oneClickLogin = '/auth/one-click-login';
+  static const String sendEmailCode = '/auth/email/send-code';
+  static const String emailLogin = '/auth/email/login';
+  static const String appleLogin = '/auth/apple-login';
   static const String refreshToken = '/auth/refresh';
   static const String userProfile = '/user/profile';
   static const String userAvatar = '/user/avatar';
@@ -32,7 +34,7 @@ class ApiConstants {
   static const String generateImage = '/generate-image';
   static const String paintings = '/paintings';
   static const String uploadImage = '/chat/upload-image';
-  static const String promptSuggestions = '/prompt-suggestions';
+  static const String promptSuggestions = '/prompt-suggestions/';
   static const String conversations = '/conversations';
   static const String sendMessage = '/chat/send';
   static const String streamChat = '/chat/stream';

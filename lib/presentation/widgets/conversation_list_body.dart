@@ -173,6 +173,7 @@ class ConversationListBody extends StatelessWidget {
           controller: controller,
           decoration: const InputDecoration(hintText: '会话名称'),
           style: TextStyle(color: colors.text),
+          onTapOutside: (_) => FocusScope.of(context).unfocus(),
         ),
         actions: [
           TextButton(

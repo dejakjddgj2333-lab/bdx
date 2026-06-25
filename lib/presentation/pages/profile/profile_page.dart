@@ -72,6 +72,7 @@ class _ProfilePageState extends State<ProfilePage> {
             hintStyle: TextStyle(color: colors.textTertiary),
             counterStyle: TextStyle(color: colors.textTertiary),
           ),
+          onTapOutside: (_) => FocusScope.of(dialogContext).unfocus(),
         ),
         actions: [
           TextButton(

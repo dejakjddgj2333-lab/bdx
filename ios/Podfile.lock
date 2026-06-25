@@ -1,4 +1,8 @@
 PODS:
+  - ali_auth (1.3.9):
+    - Flutter
+    - MJExtension
+    - SDWebImage
   - Flutter (1.0.0)
   - flutter_image_compress_common (1.0.0):
     - Flutter
@@ -6,8 +10,6 @@ PODS:
     - SDWebImage
     - SDWebImageWebPCoder
   - flutter_pcm_sound (0.0.1):
-    - Flutter
-  - flutter_secure_storage (6.0.0):
     - Flutter
   - flutter_webrtc (1.4.0):
     - Flutter
@@ -33,6 +35,7 @@ PODS:
   - Mantle (2.2.0):
     - Mantle/extobjc (= 2.2.0)
   - Mantle/extobjc (2.2.0)
+  - MJExtension (3.4.2)
   - record_darwin (1.0.0):
     - Flutter
   - SDWebImage (5.21.7):
@@ -41,35 +44,39 @@ PODS:
   - SDWebImageWebPCoder (0.15.0):
     - libwebp (~> 1.0)
     - SDWebImage/Core (~> 5.17)
+  - sign_in_with_apple (0.0.1):
+    - Flutter
   - WebRTC-SDK (144.7559.01)
 
 DEPENDENCIES:
+  - ali_auth (from `.symlinks/plugins/ali_auth/ios`)
   - Flutter (from `Flutter`)
   - flutter_image_compress_common (from `.symlinks/plugins/flutter_image_compress_common/ios`)
   - flutter_pcm_sound (from `.symlinks/plugins/flutter_pcm_sound/ios`)
-  - flutter_secure_storage (from `.symlinks/plugins/flutter_secure_storage/ios`)
   - flutter_webrtc (from `.symlinks/plugins/flutter_webrtc/ios`)
   - fluttertoast (from `.symlinks/plugins/fluttertoast/ios`)
   - livekit_client (from `.symlinks/plugins/livekit_client/ios`)
   - record_darwin (from `.symlinks/plugins/record_darwin/ios`)
+  - sign_in_with_apple (from `.symlinks/plugins/sign_in_with_apple/ios`)
 
 SPEC REPOS:
   trunk:
     - libwebp
     - Mantle
+    - MJExtension
     - SDWebImage
     - SDWebImageWebPCoder
     - WebRTC-SDK
 
 EXTERNAL SOURCES:
+  ali_auth:
+    :path: ".symlinks/plugins/ali_auth/ios"
   Flutter:
     :path: Flutter
   flutter_image_compress_common:
     :path: ".symlinks/plugins/flutter_image_compress_common/ios"
   flutter_pcm_sound:
     :path: ".symlinks/plugins/flutter_pcm_sound/ios"
-  flutter_secure_storage:
-    :path: ".symlinks/plugins/flutter_secure_storage/ios"
   flutter_webrtc:
     :path: ".symlinks/plugins/flutter_webrtc/ios"
   fluttertoast:
@@ -78,20 +85,24 @@ EXTERNAL SOURCES:
     :path: ".symlinks/plugins/livekit_client/ios"
   record_darwin:
     :path: ".symlinks/plugins/record_darwin/ios"
+  sign_in_with_apple:
+    :path: ".symlinks/plugins/sign_in_with_apple/ios"
 
 SPEC CHECKSUMS:
+  ali_auth: e5774371bac5e8fb6a2edb2a35340ea52705bf7f
   Flutter: cabc95a1d2626b1b06e7179b784ebcf0c0cde467
   flutter_image_compress_common: ec1d45c362c9d30a3f6a0426c297f47c52007e3e
   flutter_pcm_sound: de0572ca4f99091cc2abfcc31601b8a4ddd33c0e
-  flutter_secure_storage: d33dac7ae2ea08509be337e775f6b59f1ff45f12
   flutter_webrtc: 5aa37bfb8b834bff989a03182d1c4266a4f93377
   fluttertoast: 21eecd6935e7064cc1fcb733a4c5a428f3f24f0f
   libwebp: 02b23773aedb6ff1fd38cec7a77b81414c6842a8
   livekit_client: ae9fedc5f3d40405f3a1b7d68d730a08ef58600c
   Mantle: c5aa8794a29a022dfbbfc9799af95f477a69b62d
+  MJExtension: e97d164cb411aa9795cf576093a1fa208b4a8dd8
   record_darwin: 3b1a8e7d5c0cbf45ad6165b4d83a6ca643d929c3
   SDWebImage: e9fc87c1aab89a8ab1bbd74eba378c6f53be8abf
   SDWebImageWebPCoder: 0e06e365080397465cc73a7a9b472d8a3bd0f377
+  sign_in_with_apple: f3bf75217ea4c2c8b91823f225d70230119b8440
   WebRTC-SDK: ab9b5319e458c2bfebdc92b3600740da35d5630d
 
 PODFILE CHECKSUM: f03644202793a7f3138b81fb29b8b50cf9547cc8

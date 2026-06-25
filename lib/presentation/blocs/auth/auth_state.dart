@@ -31,3 +31,23 @@ class AuthUnauthenticated extends AuthState {
 class AuthError extends AuthState {
   const AuthError(String error) : super(error: error);
 }
+
+class AuthOneClickFailed extends AuthState {
+  final String error;
+  const AuthOneClickFailed(this.error) : super(error: error);
+
+  @override
+  List<Object?> get props => [error];
+}
+
+class AuthEmailCodeSending extends AuthState {
+  const AuthEmailCodeSending() : super();
+}
+
+class AuthEmailCodeSent extends AuthState {
+  const AuthEmailCodeSent() : super();
+}
+
+class AuthEmailCodeError extends AuthState {
+  const AuthEmailCodeError(String error) : super(error: error);
+}

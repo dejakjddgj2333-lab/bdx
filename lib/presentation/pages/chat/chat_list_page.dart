@@ -6,6 +6,7 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_dimens.dart';
 import '../../../core/constants/app_shadows.dart';
 import '../../../core/constants/app_text_styles.dart';
+import '../../../services/auth_service.dart';
 import '../../blocs/auth/auth_bloc.dart';
 import '../../blocs/chat_list/chat_list_bloc.dart';
 import '../../blocs/model/model_cubit.dart';
@@ -26,6 +27,14 @@ class ChatListPage extends StatefulWidget {
 class _ChatListPageState extends State<ChatListPage> {
   bool _hasRequestedList = false;
   final _homeInputController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    // 首页一进入就开始初始化 ali_auth SDK 并预取号，为后续一键登录预热。
+    // 预取号结果不影响首页展示，只决定点击一键登录时是否可用。
+    AuthService.prepareAliAuth();
+  }
 
   @override
   void dispose() {
@@ -63,7 +72,8 @@ class _ChatListPageState extends State<ChatListPage> {
                   actions: [
                     BdxIconButton(
                       icon: Icons.add_circle_outline,
-                      onTap: () => context.push('/chat/detail'),
+                      onTap: () => _requireAuth(() => context.push('/chat/detail'),
+                          redirect: '/chat/detail'),
                       backgroundColor: Colors.transparent,
                     ),
                   ],
@@ -83,49 +93,60 @@ class _ChatListPageState extends State<ChatListPage> {
     if (authState is AuthInitial || authState is AuthLoading) {
       return const Center(child: LoadingIndicator());
     }
-    if (authState.isAuthenticated) {
-      return _buildAuthenticatedBody(context);
+    return _buildAuthenticatedBody(context, authState.isAuthenticated);
+  }
+
+  /// 未登录时点击模块统一跳登录页；已登录则执行原始逻辑。
+  void _requireAuth(VoidCallback onAuthed, {String? redirect}) {
+    final authed = context.read<AuthBloc>().state.isAuthenticated;
+    if (authed) {
+      onAuthed();
+      return;
     }
-    return _buildLoginPrompt(context);
+    context.push('/login${redirect != null ? '?redirect=${Uri.encodeComponent(redirect)}' : ''}');
   }
 
-  Widget _buildAuthenticatedBody(BuildContext context) {
-    return LiquidPullToRefresh(
-      onRefresh: () async {
-        context.read<ChatListBloc>().add(const ChatListLoaded());
+  Widget _buildAuthenticatedBody(BuildContext context, bool authenticated) {
+    return BlocBuilder<ChatListBloc, ChatListState>(
+      builder: (context, listState) {
+        final hasRecords = listState is ChatListLoadedSuccess &&
+            (listState.searchQuery.isEmpty
+                    ? listState.conversations
+                    : listState.filtered)
+                .isNotEmpty;
+
+        final slivers = <Widget>[
+          SliverToBoxAdapter(child: _buildHero(context, authenticated)),
+          SliverToBoxAdapter(child: _buildHomeInput(context, authenticated)),
+          SliverToBoxAdapter(child: _buildVoiceCard(context, authenticated)),
+          SliverToBoxAdapter(child: _buildMeetingCard(context, authenticated)),
+          SliverToBoxAdapter(child: _buildQuickGrid(context, authenticated)),
+          if (authenticated) _buildConversationList(),
+        ];
+
+        // 有历史记录时允许滚动，并支持下拉刷新；没有记录时固定不动。
+        if (authenticated && hasRecords) {
+          return LiquidPullToRefresh(
+            onRefresh: () async {
+              context.read<ChatListBloc>().add(const ChatListLoaded());
+            },
+            color: AppColors.primary,
+            backgroundColor: Colors.white,
+            height: 60,
+            showChildOpacityTransition: false,
+            child: CustomScrollView(slivers: slivers),
+          );
+        }
+
+        return CustomScrollView(
+          physics: authenticated ? const NeverScrollableScrollPhysics() : null,
+          slivers: slivers,
+        );
       },
-      color: AppColors.primary,
-      backgroundColor: Colors.white,
-      height: 60,
-      showChildOpacityTransition: false,
-      child: CustomScrollView(
-        slivers: [
-          SliverToBoxAdapter(child: _buildHero(context)),
-          SliverToBoxAdapter(child: _buildHomeInput(context)),
-          SliverToBoxAdapter(child: _buildVoiceCard(context)),
-          SliverToBoxAdapter(child: _buildMeetingCard(context)),
-          SliverToBoxAdapter(child: _buildQuickGrid(context)),
-          _buildConversationList(),
-        ],
-      ),
     );
   }
 
-  Widget _buildLoginPrompt(BuildContext context) {
-    return BdxEmptyState(
-      icon: Icons.lock_outline,
-      title: '登录后查看对话记录',
-      subtitle: '立即登录，开启 AI 对话',
-      illustration: const BdxEmptyIllustration(size: 160),
-      action: BdxButton(
-        text: '立即登录',
-        expanded: true,
-        onTap: () => context.go('/login'),
-      ),
-    );
-  }
-
-  Widget _buildHero(BuildContext context) {
+  Widget _buildHero(BuildContext context, bool authenticated) {
     final colors = AppColors.of(context);
 
     return Padding(
@@ -215,10 +236,10 @@ class _ChatListPageState extends State<ChatListPage> {
     );
   }
 
-  Widget _buildHomeInput(BuildContext context) {
+  Widget _buildHomeInput(BuildContext context, bool authenticated) {
     final colors = AppColors.of(context);
 
-    return Padding(
+    final input = Padding(
       padding: const EdgeInsets.fromLTRB(
         AppDimens.s16,
         AppDimens.s4,
@@ -227,9 +248,10 @@ class _ChatListPageState extends State<ChatListPage> {
       ),
       child: BdxInput(
         controller: _homeInputController,
-        hintText: '输入消息，开启文字对话...',
+        hintText: authenticated ? '输入消息，开启文字对话...' : '登录后开启 AI 对话...',
         textInputAction: TextInputAction.send,
-        onSubmitted: _submitHomeInput,
+        enabled: authenticated,
+        onSubmitted: authenticated ? _submitHomeInput : null,
         suffix: ValueListenableBuilder<TextEditingValue>(
           valueListenable: _homeInputController,
           builder: (context, value, child) {
@@ -237,13 +259,20 @@ class _ChatListPageState extends State<ChatListPage> {
             return BdxIconButton(
               icon: Icons.send,
               size: 44,
-              backgroundColor: hasText ? AppColors.primary : colors.glassWhite,
-              iconColor: hasText ? Colors.white : colors.textTertiary,
-              onTap: hasText ? _submitHomeInput : null,
+              backgroundColor: authenticated && hasText ? AppColors.primary : colors.glassWhite,
+              iconColor: authenticated && hasText ? Colors.white : colors.textTertiary,
+              onTap: authenticated && hasText ? _submitHomeInput : null,
             );
           },
         ),
       ),
+    );
+
+    if (authenticated) return input;
+    return GestureDetector(
+      behavior: HitTestBehavior.translucent,
+      onTap: () => _requireAuth(() {}, redirect: '/chat/detail'),
+      child: input,
     );
   }
 
@@ -256,7 +285,7 @@ class _ChatListPageState extends State<ChatListPage> {
     context.push('/chat/detail?content=${Uri.encodeComponent(text)}');
   }
 
-  Widget _buildVoiceCard(BuildContext context) {
+  Widget _buildVoiceCard(BuildContext context, bool authenticated) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(
         AppDimens.s16,
@@ -265,7 +294,8 @@ class _ChatListPageState extends State<ChatListPage> {
         AppDimens.s16,
       ),
       child: PressScale(
-        onTap: () => context.push('/voice-call'),
+        onTap: () => _requireAuth(() => context.push('/voice-call'),
+            redirect: '/voice-call'),
         child: Container(
           padding: const EdgeInsets.all(AppDimens.s16),
           decoration: BoxDecoration(
@@ -320,7 +350,7 @@ class _ChatListPageState extends State<ChatListPage> {
     );
   }
 
-  Widget _buildMeetingCard(BuildContext context) {
+  Widget _buildMeetingCard(BuildContext context, bool authenticated) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(
         AppDimens.s16,
@@ -329,7 +359,8 @@ class _ChatListPageState extends State<ChatListPage> {
         AppDimens.s16,
       ),
       child: PressScale(
-        onTap: () => context.push('/meeting'),
+        onTap: () =>
+            _requireAuth(() => context.push('/meeting'), redirect: '/meeting'),
         child: Container(
           padding: const EdgeInsets.all(AppDimens.s16),
           decoration: BoxDecoration(
@@ -388,7 +419,7 @@ class _ChatListPageState extends State<ChatListPage> {
     );
   }
 
-  Widget _buildQuickGrid(BuildContext context) {
+  Widget _buildQuickGrid(BuildContext context, bool authenticated) {
     final items = const [
       _QuickItem(
         icon: Icons.smart_toy_outlined,
@@ -438,16 +469,25 @@ class _ChatListPageState extends State<ChatListPage> {
   }
 
   void _onQuickItemTap(BuildContext context, _QuickItem item) {
-    switch (item.title) {
-      case 'AI 助手':
-        context.push('/chat/detail?scene=assistant');
-      case 'AI 绘图':
-        context.push('/image-generation');
-      case 'AI 写作':
-        context.push('/chat/detail?scene=rewrite');
-      case '实用工具':
-        context.push('/tools');
-    }
+    final redirect = switch (item.title) {
+      'AI 助手' => '/chat/detail?scene=assistant',
+      'AI 绘图' => '/image-generation',
+      'AI 写作' => '/chat/detail?scene=rewrite',
+      '实用工具' => '/tools',
+      _ => '/',
+    };
+    _requireAuth(() {
+      switch (item.title) {
+        case 'AI 助手':
+          context.push('/chat/detail?scene=assistant');
+        case 'AI 绘图':
+          context.push('/image-generation');
+        case 'AI 写作':
+          context.push('/chat/detail?scene=rewrite');
+        case '实用工具':
+          context.push('/tools');
+      }
+    }, redirect: redirect);
   }
 
   Widget _buildQuickCard(BuildContext context, _QuickItem item) {
@@ -536,13 +576,7 @@ class _ChatListPageState extends State<ChatListPage> {
               : state.filtered;
 
           if (conversations.isEmpty) {
-            return SliverFillRemaining(
-              child: BdxEmptyState(
-                icon: Icons.chat_bubble_outline,
-                title: '暂无会话',
-                subtitle: '点击右上角新建对话',
-              ),
-            );
+            return const SliverToBoxAdapter(child: SizedBox.shrink());
           }
 
           final recent = conversations.take(5).toList();

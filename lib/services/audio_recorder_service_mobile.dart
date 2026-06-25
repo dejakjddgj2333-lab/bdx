@@ -122,6 +122,10 @@ class AudioRecorderServiceImpl implements AudioRecorderService {
       _subscription = null;
       await _recorder.stop();
     }
+    // iOS 端也取消订阅，避免 stopRecording 后 stream 仍推送尾音造成误触发。
+    await _subscription?.cancel();
+    _subscription = null;
+    _initialDropper = null;
   }
 
   @override

@@ -1,7 +1,7 @@
 name: beidouxing_app_flutter
 description: "北斗星AI Flutter 客户端"
 publish_to: 'none'
-version: 1.0.5+25
+version: 1.0.5+45
 
 environment:
   sdk: ^3.12.2
@@ -25,7 +25,7 @@ dependencies:
   # 本地存储
   hive: ^2.2.3
   hive_flutter: ^1.1.0
-  flutter_secure_storage: ^9.2.2
+  flutter_secure_storage: ^10.3.1
 
   # 依赖注入
   get_it: ^7.7.0
@@ -67,6 +67,10 @@ dependencies:
 
   # 权限
   permission_handler: ^11.3.1
+
+  # 一键登录 & Apple 登录
+  ali_auth: ^1.3.9
+  sign_in_with_apple: ^6.1.1
 
   # 工具
   path_provider: ^2.1.4

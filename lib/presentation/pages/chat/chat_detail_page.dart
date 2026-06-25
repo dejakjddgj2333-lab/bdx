@@ -521,6 +521,7 @@ class _ChatDetailPageState extends State<ChatDetailPage>
                         textInputAction: TextInputAction.send,
                         scrollPadding: const EdgeInsets.only(bottom: 100),
                         onSubmitted: (_) => _sendMessage(state),
+                        onTapOutside: (_) => _focusNode.unfocus(),
                         decoration: InputDecoration(
                           hintText: _scenePlaceholder(state.scene),
                           filled: false,

@@ -9,6 +9,7 @@ import '../../../core/constants/app_text_styles.dart';
 import '../../blocs/meeting/meeting_cubit.dart';
 import '../../blocs/meeting/meeting_state.dart';
 import '../bdx/press_scale.dart';
+import 'participant_avatar.dart';
 
 /// 参会成员面板：玻璃拟态底部弹层，实时展示成员、静音/举手/主持人状态。
 /// 主持人可放下他人或全体的手。
@@ -56,6 +57,7 @@ class MeetingParticipantsPanel extends StatelessWidget {
                     participant: local,
                     isLocal: true,
                     isHost: state.isHost,
+                    avatarUrl: cubit.avatarOf(local),
                   ));
                 }
                 for (final r in state.remoteParticipants) {
@@ -63,6 +65,7 @@ class MeetingParticipantsPanel extends StatelessWidget {
                     participant: r,
                     isLocal: false,
                     isHost: false,
+                    avatarUrl: cubit.avatarOf(r),
                   ));
                 }
                 final raisedCount = state.raisedHands.length;
@@ -148,11 +151,13 @@ class _MemberEntry {
   final Participant participant;
   final bool isLocal;
   final bool isHost;
+  final String? avatarUrl;
 
   _MemberEntry({
     required this.participant,
     required this.isLocal,
     required this.isHost,
+    this.avatarUrl,
   });
 }
 
@@ -213,10 +218,14 @@ class _MemberTile extends StatelessWidget {
           CircleAvatar(
             radius: 18,
             backgroundColor: _avatarColor.withValues(alpha: 0.85),
-            child: Text(
-              _name.characters.first.toUpperCase(),
-              style: const TextStyle(
-                  color: Colors.white, fontWeight: FontWeight.w700),
+            child: ParticipantAvatar(
+              name: _name,
+              avatarUrl: entry.avatarUrl,
+              size: 36,
+              textStyle: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w700,
+              ),
             ),
           ),
           const SizedBox(width: 12),

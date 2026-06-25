@@ -29,24 +29,37 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
-  Future<Map<String, dynamic>> register(
-    String username,
-    String password, {
-    String? nickname,
-  }) async {
-    final body = {
-      'username': username,
-      'password': password,
-      if (nickname != null && nickname.isNotEmpty) 'nickname': nickname,
-    };
-    final res = await _authApi.register(body);
+  Future<Map<String, dynamic>> oneClickLogin(String token) async {
+    final res = await _authApi.oneClickLogin({'token': token});
     return _unwrap(res);
   }
 
   @override
-  Future<Map<String, dynamic>> login(String username, String password) async {
-    final body = {'username': username, 'password': password};
-    final res = await _authApi.login(body);
+  Future<void> sendEmailCode(String email) async {
+    final res = await _authApi.sendEmailCode({'email': email});
+    _unwrap(res);
+  }
+
+  @override
+  Future<Map<String, dynamic>> emailLogin(String email, String code) async {
+    final res = await _authApi.emailLogin({'email': email, 'code': code});
+    return _unwrap(res);
+  }
+
+  @override
+  Future<Map<String, dynamic>> appleLogin({
+    required String identityToken,
+    required String userIdentifier,
+    String? email,
+    String? nickname,
+  }) async {
+    final body = {
+      'identityToken': identityToken,
+      'userIdentifier': userIdentifier,
+      if (email != null && email.isNotEmpty) 'email': email,
+      if (nickname != null && nickname.isNotEmpty) 'nickname': nickname,
+    };
+    final res = await _authApi.appleLogin(body);
     return _unwrap(res);
   }
 
@@ -63,8 +76,8 @@ class AuthRepositoryImpl implements AuthRepository {
   @override
   Future<User?> updateProfile({String? nickname, String? avatar}) async {
     final body = <String, dynamic>{
-      'nickname': ?nickname,
-      'avatar': ?avatar,
+      if (nickname != null && nickname.isNotEmpty) 'nickname': nickname,
+      if (avatar != null && avatar.isNotEmpty) 'avatar': avatar,
     };
     final res = await _authApi.updateProfile(body);
     final data = _unwrap(res);
@@ -89,7 +102,10 @@ class AuthRepositoryImpl implements AuthRepository {
 
   @override
   Future<void> logout() async {
-    await _secureStorage.deleteToken();
+    // 退出登录时先清空可能残留的 key，再调用 deleteToken。
+    // iOS Keychain 在 accessibility 不一致时 delete 可能匹配不到旧 item，
+    // deleteAll 能更彻底地清理本 App 在钥匙串中的全部数据。
+    await _secureStorage.clearAll();
     await _hiveStorage.delete('userInfo');
   }
 

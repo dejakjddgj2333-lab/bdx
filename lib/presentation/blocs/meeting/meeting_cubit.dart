@@ -6,6 +6,7 @@ import 'package:flutter_webrtc/flutter_webrtc.dart' show Helper;
 import 'package:livekit_client/livekit_client.dart';
 import 'package:permission_handler/permission_handler.dart';
 
+import '../../../core/constants/api_constants.dart';
 import '../../../data/datasources/remote/meeting_api.dart';
 import 'meeting_state.dart';
 
@@ -24,7 +25,7 @@ class MeetingCubit extends Cubit<MeetingState> {
   String? get localIdentity => state.localParticipant?.identity;
 
   /// 从参与者 metadata 中解析头像 URL（后端入会时写入）。
-  String? _avatarOf(Participant? p) {
+  String? avatarOf(Participant? p) {
     final meta = p?.metadata;
     if (meta == null || meta.isEmpty) return null;
     try {
@@ -34,6 +35,13 @@ class MeetingCubit extends Cubit<MeetingState> {
     } catch (_) {
       return null;
     }
+  }
+
+  /// 将头像地址补全为可访问 URL（相对路径自动拼接上传域名）。
+  static String? resolveAvatarUrl(String? avatarUrl) {
+    if (avatarUrl == null || avatarUrl.isEmpty) return null;
+    if (avatarUrl.startsWith('http')) return avatarUrl;
+    return '${ApiConstants.uploadBaseUrl.replaceAll(RegExp(r'/$'), '')}$avatarUrl';
   }
 
   /// 创建新会议并加入
@@ -355,7 +363,7 @@ class MeetingCubit extends Cubit<MeetingState> {
                   : (from?.name.isNotEmpty == true ? from!.name : '匿名'),
               senderAvatar: (payload['avatar'] as String?)?.isNotEmpty == true
                   ? payload['avatar'] as String
-                  : _avatarOf(from),
+                  : avatarOf(from),
               text: payload['text'] as String? ?? '',
               sentAt: DateTime.now(),
               isLocal: false,
@@ -462,7 +470,7 @@ class MeetingCubit extends Cubit<MeetingState> {
     if (trimmed.isEmpty) return;
     final lp = _room?.localParticipant;
     final name = (lp?.name.isNotEmpty == true) ? lp!.name : '我';
-    final avatar = _avatarOf(lp);
+    final avatar = avatarOf(lp);
     emit(state.copyWith(
       messages: [
         ...state.messages,

@@ -111,6 +111,9 @@ class WebSocketService {
         'modalities': ['text', 'audio'],
         'instructions': '你是北斗星AI，一个 helpful 的语音助手，请用中文回答用户问题。',
         'voice': voice ?? 'coral',
+        // 'inf' 表示不限制单次回复长度；整数上限只有 4096，约等于 30 秒语音，
+        // 会导致 AI 说到 30 秒左右被服务端强制截断。
+        'max_response_output_tokens': 'inf',
         'turn_detection': {
           'type': 'server_vad',
           'threshold': 0.4,

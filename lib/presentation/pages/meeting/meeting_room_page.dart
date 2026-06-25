@@ -15,6 +15,7 @@ import '../../blocs/meeting/meeting_cubit.dart';
 import '../../blocs/meeting/meeting_state.dart';
 import '../../widgets/bdx/bdx.dart';
 import '../../widgets/meeting/chat_panel.dart';
+import '../../widgets/meeting/participant_avatar.dart';
 import '../../widgets/meeting/participants_panel.dart';
 import '../../widgets/meeting/space_background.dart';
 
@@ -429,6 +430,7 @@ class _MeetingRoomPageState extends State<MeetingRoomPage> {
       return _buildConnectingSplash();
     }
 
+    final cubit = context.read<MeetingCubit>();
     final cameraTiles = <_ParticipantTileData>[];
     final screenTiles = <_ParticipantTileData>[];
 
@@ -440,6 +442,7 @@ class _MeetingRoomPageState extends State<MeetingRoomPage> {
         isHost: isHost,
         handRaised: state.raisedHands.contains(p.identity),
         name: name,
+        avatarUrl: cubit.avatarOf(p),
         videoTrack: _cameraTrackOf(p),
       ));
       final screen = _screenTrackOf(p);
@@ -450,6 +453,7 @@ class _MeetingRoomPageState extends State<MeetingRoomPage> {
           isHost: isHost,
           handRaised: false,
           name: '$name 的共享',
+          avatarUrl: cubit.avatarOf(p),
           videoTrack: screen,
           isScreenShare: true,
         ));
@@ -942,6 +946,7 @@ class _ParticipantTileData {
   final bool isHost;
   final bool handRaised;
   final String name;
+  final String? avatarUrl;
 
   /// 该格要渲染的视频轨（摄像头或屏幕共享）；为空则显示头像占位。
   final VideoTrack? videoTrack;
@@ -955,6 +960,7 @@ class _ParticipantTileData {
     required this.isHost,
     required this.handRaised,
     required this.name,
+    this.avatarUrl,
     this.videoTrack,
     this.isScreenShare = false,
   });
@@ -1030,12 +1036,6 @@ class _ParticipantTile extends StatelessWidget {
     );
   }
 
-  String get _initial {
-    return data.name.isNotEmpty
-        ? data.name.characters.first.toUpperCase()
-        : '?';
-  }
-
   Color get _avatarColor {
     final colors = [
       AppColors.primary,
@@ -1093,7 +1093,8 @@ class _ParticipantTile extends StatelessWidget {
                   : _AvatarPlaceholder(
                       key: const ValueKey('avatar'),
                       color: _avatarColor,
-                      initial: _initial,
+                      name: data.name,
+                      avatarUrl: data.avatarUrl,
                     ),
             ),
             // 左上角：屏幕共享标记
@@ -1176,12 +1177,14 @@ class _ParticipantTile extends StatelessWidget {
 /// 无视频时的头像占位：双层光晕 + 渐变描边头像。
 class _AvatarPlaceholder extends StatelessWidget {
   final Color color;
-  final String initial;
+  final String name;
+  final String? avatarUrl;
 
   const _AvatarPlaceholder({
     super.key,
     required this.color,
-    required this.initial,
+    required this.name,
+    this.avatarUrl,
   });
 
   @override
@@ -1224,16 +1227,12 @@ class _AvatarPlaceholder extends StatelessWidget {
                   child: CircleAvatar(
                     radius: avatarRadius - 2,
                     backgroundColor: colors.meetingCardBg,
-                    child: FittedBox(
-                      fit: BoxFit.scaleDown,
-                      child: Padding(
-                        padding: const EdgeInsets.all(6),
-                        child: Text(
-                          initial,
-                          style: AppTextStyles.headline(context)
-                              .copyWith(color: Colors.white),
-                        ),
-                      ),
+                    child: ParticipantAvatar(
+                      name: name,
+                      avatarUrl: avatarUrl,
+                      size: (avatarRadius - 2) * 2,
+                      textStyle: AppTextStyles.headline(context)
+                          .copyWith(color: Colors.white),
                     ),
                   ),
                 ),
@@ -1616,6 +1615,7 @@ class _RenameDialogState extends State<_RenameDialog> {
                         cursorColor: Colors.white,
                         textInputAction: TextInputAction.done,
                         maxLength: 40,
+                        onTapOutside: (_) => _focusNode.unfocus(),
                         decoration: const InputDecoration(
                           hintText: '输入新的会议主题',
                           hintStyle:
@@ -1825,8 +1825,6 @@ class _FullscreenVideoView extends StatelessWidget {
   /// 无视频时的居中头像大图。
   Widget _buildAvatarHero(BuildContext context) {
     final color = _avatarColor;
-    final initial =
-        data.name.isNotEmpty ? data.name.characters.first.toUpperCase() : '?';
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -1850,9 +1848,11 @@ class _FullscreenVideoView extends StatelessWidget {
                 ),
               ],
             ),
-            child: Text(
-              initial,
-              style: const TextStyle(
+            child: ParticipantAvatar(
+              name: data.name,
+              avatarUrl: data.avatarUrl,
+              size: 132,
+              textStyle: const TextStyle(
                 color: Colors.white,
                 fontSize: 52,
                 fontWeight: FontWeight.w700,

@@ -20,6 +20,7 @@ class AppTextStyles {
       fontSize: fontSize,
       fontWeight: weight ?? FontWeight.w400,
       height: height,
+      decoration: TextDecoration.none,
     );
   }
 

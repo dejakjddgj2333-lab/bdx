@@ -349,6 +349,11 @@ class VoiceCallBloc extends Bloc<VoiceCallEvent, VoiceCallState> {
     if (state.status == CallStatus.speaking) {
       emit(state.copyWith(status: CallStatus.listening));
       _webSocketService.updateVadThreshold(0.5);
+      //  watchdog 强制切回 listening 时，也要把麦克风恢复，否则界面显示“聆听中”但用户说不了话。
+      if (_micPausedForAi && !state.isMuted && state.status.isInCall) {
+        _micResumeTimer?.cancel();
+        _scheduleMicResumeAfterAiSpeech();
+      }
     }
   }
 
@@ -422,9 +427,16 @@ class VoiceCallBloc extends Bloc<VoiceCallEvent, VoiceCallState> {
         return;
       }
       final lastDelta = _lastAudioDeltaTime;
-      if (lastDelta != null &&
-          DateTime.now().difference(lastDelta).inSeconds >= 6) {
-        log('AI speaking 超过 6 秒无新音频, 强制重置为 listening');
+      final noDeltaSeconds = lastDelta == null
+          ? 0
+          : DateTime.now().difference(lastDelta).inSeconds;
+
+      // AI 仍在播放或缓冲未空时，给更多容忍时间，避免播放还没完就误切到 listening。
+      final isStillPlaying = _audioPlayerService.isPlaybackActive;
+      final thresholdSeconds = isStillPlaying ? 12 : 6;
+
+      if (noDeltaSeconds >= thresholdSeconds) {
+        log('AI speaking 超过 $thresholdSeconds 秒无新音频，强制重置为 listening');
         _lastAudioDeltaTime = null;
         await _audioPlayerService.flushAccumulatedAudio();
         if (isClosed) return;

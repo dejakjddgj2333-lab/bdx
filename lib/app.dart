@@ -69,7 +69,10 @@ class App extends StatelessWidget {
             ),
             themeMode: themeState.mode.toThemeMode,
             routerConfig: _router,
-            builder: (context, child) => TechBackground(child: child ?? const SizedBox.shrink()),
+            builder: (context, child) => DefaultTextStyle.merge(
+              style: const TextStyle(decoration: TextDecoration.none),
+              child: TechBackground(child: child ?? const SizedBox.shrink()),
+            ),
           );
         },
       ),
@@ -81,14 +84,19 @@ final GoRouter _router = GoRouter(
   initialLocation: '/',
   redirect: (context, state) {
     final authState = context.read<AuthBloc>().state;
-    final isLoginPage = state.matchedLocation == '/login';
+    final loc = state.matchedLocation;
+    final isLoginPage = loc == '/login';
+    final isHome = loc == '/';
 
     if (authState is AuthLoading || authState is AuthInitial) return null;
-    if (!authState.isAuthenticated && !isLoginPage) {
-      return '/login?redirect=${Uri.encodeComponent(state.matchedLocation)}';
-    }
+    // 已登录却停留在登录页 -> 回首页
     if (authState.isAuthenticated && isLoginPage) {
       return '/';
+    }
+    // 未登录：允许浏览首页与登录页（首页各模块点击时自行跳登录），
+    // 其它受保护页面仍重定向到登录。
+    if (!authState.isAuthenticated && !isLoginPage && !isHome) {
+      return '/login?redirect=${Uri.encodeComponent(loc)}';
     }
     return null;
   },

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_dimens.dart';
 import 'glass_card.dart';
@@ -9,6 +10,8 @@ class BdxInput extends StatelessWidget {
   final ValueChanged<String>? onChanged;
   final VoidCallback? onSubmitted;
   final TextInputAction? textInputAction;
+  final TextInputType? keyboardType;
+  final List<TextInputFormatter>? inputFormatters;
   final int? maxLines;
   final int? minLines;
   final bool obscureText;
@@ -18,6 +21,7 @@ class BdxInput extends StatelessWidget {
   final bool enabled;
   final FocusNode? focusNode;
   final EdgeInsetsGeometry? contentPadding;
+  final TapRegionCallback? onTapOutside;
 
   const BdxInput({
     super.key,
@@ -26,6 +30,8 @@ class BdxInput extends StatelessWidget {
     this.onChanged,
     this.onSubmitted,
     this.textInputAction,
+    this.keyboardType,
+    this.inputFormatters,
     this.maxLines = 1,
     this.minLines,
     this.obscureText = false,
@@ -35,6 +41,7 @@ class BdxInput extends StatelessWidget {
     this.enabled = true,
     this.focusNode,
     this.contentPadding,
+    this.onTapOutside,
   });
 
   @override
@@ -58,7 +65,10 @@ class BdxInput extends StatelessWidget {
               focusNode: focusNode,
               onChanged: onChanged,
               onSubmitted: onSubmitted != null ? (_) => onSubmitted!() : null,
+              onTapOutside: onTapOutside ?? (_) => FocusManager.instance.primaryFocus?.unfocus(),
               textInputAction: textInputAction,
+              keyboardType: keyboardType,
+              inputFormatters: inputFormatters,
               maxLines: maxLines,
               minLines: minLines,
               obscureText: obscureText,
