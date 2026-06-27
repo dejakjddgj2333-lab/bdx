@@ -94,7 +94,8 @@ class AudioPlayerService {
 
     _initialized = true;
     _lastFeedTime = null;
-    _startStatsTimer();
+    // 暂关 stats 定时日志，避免刷屏淹没 WS/bloc 日志；调试可改回 _startStatsTimer()
+    // _startStatsTimer();
   }
 
   Future<void> setSpeaker(bool useSpeaker) async {

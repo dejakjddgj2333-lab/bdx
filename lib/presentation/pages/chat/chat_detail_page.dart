@@ -110,8 +110,15 @@ class _ChatDetailPageState extends State<ChatDetailPage>
                 icon: Icons.error_outline,
               );
             }
-            WidgetsBinding.instance
-                .addPostFrameCallback((_) => _scrollToBottom());
+            // 仅当用户已停留在底部附近时才自动跟随，避免流式输出时
+            // 频繁滚动抖动、以及用户上滑查看历史被强行拽回底部。
+            final stickToBottom = !_scrollController.hasClients ||
+                _scrollController.position.pixels >=
+                    _scrollController.position.maxScrollExtent - 120;
+            if (stickToBottom) {
+              WidgetsBinding.instance
+                  .addPostFrameCallback((_) => _scrollToBottom());
+            }
           },
           builder: (context, state) {
             final currentModelConfig = state.models.firstWhere(

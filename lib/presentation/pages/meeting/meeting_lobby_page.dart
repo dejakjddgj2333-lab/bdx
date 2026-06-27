@@ -8,6 +8,7 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_shadows.dart';
 import '../../../core/constants/app_text_styles.dart';
 import '../../widgets/bdx/bdx_button.dart';
+import '../../widgets/bdx/bdx_toast.dart';
 import '../../widgets/bdx/press_scale.dart';
 import '../../widgets/meeting/space_background.dart';
 
@@ -22,6 +23,13 @@ class _MeetingLobbyPageState extends State<MeetingLobbyPage> {
   final _titleController = TextEditingController();
   final _roomController = TextEditingController();
 
+  /// 当前正在跳转的动作：'create' / 'join' / null。
+  /// 用于防止重复点击，并在对应按钮上显示 loading。
+  String? _busyAction;
+
+  /// 会议号输入框是否处于错误态（空会议号时高亮）。
+  bool _roomError = false;
+
   @override
   void dispose() {
     _titleController.dispose();
@@ -29,26 +37,48 @@ class _MeetingLobbyPageState extends State<MeetingLobbyPage> {
     super.dispose();
   }
 
-  void _createMeeting() {
+  Future<void> _createMeeting() async {
+    if (_busyAction != null) return;
     final title = _titleController.text.trim();
-    context.push('/meeting/room', extra: {
+    setState(() => _busyAction = 'create');
+    // push 返回的 Future 在会议室页被 pop 回来时完成，借此恢复按钮可点。
+    await context.push('/meeting/room', extra: {
       'action': 'create',
       'title': title,
     });
+    if (mounted) setState(() => _busyAction = null);
   }
 
-  void _joinMeeting() {
+  Future<void> _joinMeeting() async {
+    if (_busyAction != null) return;
     final room = _roomController.text.trim();
     if (room.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('请输入会议号')),
+      setState(() => _roomError = true);
+      BdxToast.show(
+        context,
+        message: '请输入会议号',
+        icon: Icons.error_outline,
       );
       return;
     }
-    context.push('/meeting/room', extra: {
+    setState(() => _busyAction = 'join');
+    await context.push('/meeting/room', extra: {
       'action': 'join',
       'roomName': room,
     });
+    if (mounted) setState(() => _busyAction = null);
+  }
+
+  /// 按钮跳转中的 loading 指示（替换按钮文字）。
+  Widget _buttonLoading() {
+    return const SizedBox(
+      width: 20,
+      height: 20,
+      child: CircularProgressIndicator(
+        strokeWidth: 2,
+        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+      ),
+    );
   }
 
   @override
@@ -195,7 +225,9 @@ class _MeetingLobbyPageState extends State<MeetingLobbyPage> {
               type: BdxButtonType.primary,
               expanded: true,
               height: 46,
+              enabled: _busyAction == null,
               onTap: _createMeeting,
+              child: _busyAction == 'create' ? _buttonLoading() : null,
             ),
           ],
         ),
@@ -259,6 +291,10 @@ class _MeetingLobbyPageState extends State<MeetingLobbyPage> {
                       fontSize: 18,
                       fontWeight: FontWeight.w700)),
               borderColor: Colors.white.withValues(alpha: 0.18),
+              hasError: _roomError,
+              onChanged: (_) {
+                if (_roomError) setState(() => _roomError = false);
+              },
               textInputAction: TextInputAction.go,
               onSubmitted: (_) => _joinMeeting(),
             ),
@@ -269,7 +305,9 @@ class _MeetingLobbyPageState extends State<MeetingLobbyPage> {
               type: BdxButtonType.secondary,
               expanded: true,
               height: 46,
+              enabled: _busyAction == null,
               onTap: _joinMeeting,
+              child: _busyAction == 'join' ? _buttonLoading() : null,
             ),
           ],
         ),
@@ -285,8 +323,10 @@ class _GlassInput extends StatefulWidget {
   final IconData? icon;
   final Widget? iconWidget;
   final Color borderColor;
+  final bool hasError;
   final TextInputAction? textInputAction;
   final ValueChanged<String>? onSubmitted;
+  final ValueChanged<String>? onChanged;
 
   const _GlassInput({
     required this.controller,
@@ -294,8 +334,10 @@ class _GlassInput extends StatefulWidget {
     this.icon,
     this.iconWidget,
     required this.borderColor,
+    this.hasError = false,
     this.textInputAction,
     this.onSubmitted,
+    this.onChanged,
   });
 
   @override
@@ -322,6 +364,7 @@ class _GlassInputState extends State<_GlassInput> {
 
   @override
   Widget build(BuildContext context) {
+    const errorColor = Color(0xFFFF5A6A);
     return AnimatedContainer(
       duration: const Duration(milliseconds: 220),
       curve: Curves.easeOutCubic,
@@ -330,8 +373,10 @@ class _GlassInputState extends State<_GlassInput> {
         border: Border.all(
           color: _focused
               ? AppColors.primaryLight.withValues(alpha: 0.7)
-              : widget.borderColor,
-          width: _focused ? 1.6 : 1.2,
+              : widget.hasError
+                  ? errorColor.withValues(alpha: 0.8)
+                  : widget.borderColor,
+          width: _focused || widget.hasError ? 1.6 : 1.2,
         ),
         boxShadow: _focused
             ? [
@@ -341,7 +386,15 @@ class _GlassInputState extends State<_GlassInput> {
                   spreadRadius: -2,
                 ),
               ]
-            : null,
+            : widget.hasError
+                ? [
+                    BoxShadow(
+                      color: errorColor.withValues(alpha: 0.25),
+                      blurRadius: 14,
+                      spreadRadius: -2,
+                    ),
+                  ]
+                : null,
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(14),
@@ -367,6 +420,7 @@ class _GlassInputState extends State<_GlassInput> {
                     cursorColor: Colors.white,
                     textInputAction: widget.textInputAction,
                     onSubmitted: widget.onSubmitted,
+                    onChanged: widget.onChanged,
                     onTapOutside: (_) => _focusNode.unfocus(),
                     decoration: InputDecoration(
                       hintText: widget.hint,

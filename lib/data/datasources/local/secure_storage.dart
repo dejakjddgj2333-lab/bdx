@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 class SecureStorage {
@@ -16,17 +15,10 @@ class SecureStorage {
     // -25299 (errSecDuplicateItem)，先删除再写入以避免重复项冲突。
     await _storage.delete(key: _tokenKey);
     await _storage.write(key: _tokenKey, value: token);
-    debugPrint('[SecureStorage] token 已保存，长度=${token.length}，前16位=${token.substring(0, token.length > 16 ? 16 : token.length)}');
   }
 
   Future<String?> getToken() async {
-    final token = await _storage.read(key: _tokenKey);
-    if (token != null) {
-      debugPrint('[SecureStorage] 读到 token，长度=${token.length}，前16位=${token.substring(0, token.length > 16 ? 16 : token.length)}');
-    } else {
-      debugPrint('[SecureStorage] 未读到 token');
-    }
-    return token;
+    return _storage.read(key: _tokenKey);
   }
 
   Future<void> deleteToken() async {

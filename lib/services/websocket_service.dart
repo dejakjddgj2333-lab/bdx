@@ -7,49 +7,66 @@ import '../core/constants/api_constants.dart';
 import '../core/utils/audio_utils.dart';
 import '../data/datasources/local/secure_storage.dart';
 
+/// 语音通话 WebSocket（阶段二：方舟 Plan ASR/TTS 编排协议）
+///
+/// 上行：{ type:'audio', audio:base64 }  PCM16 16kHz
+///      { type:'stop' }
+/// 下行：{ type:'state', state }         listening/thinking/speaking/interrupted
+///      { type:'asr.text', text, isFinal }
+///      { type:'llm.text', text }
+///      { type:'tts.audio', audio:base64 }  PCM16 24kHz
+///      { type:'turn.end' }
+///      { type:'error', message }
 class WebSocketService {
   final SecureStorage _secureStorage;
   WebSocketChannel? _channel;
+  StreamSubscription? _channelSubscription;
   final _messageController = StreamController<Map<String, dynamic>>.broadcast();
   final _audioController = StreamController<List<int>>.broadcast();
-  String? _currentResponseId;
-  double _currentVadThreshold = 0.3;
+  int _audioSendCount = 0;
 
   Stream<Map<String, dynamic>> get messageStream => _messageController.stream;
   Stream<List<int>> get audioStream => _audioController.stream;
 
   WebSocketService(this._secureStorage);
 
-  Future<void> connect({String? voice}) async {
-    _currentResponseId = null;
+  Future<void> connect({String? voice, String? prompt}) async {
     final token = await _secureStorage.getToken();
     var url = '${ApiConstants.wsUrl}?token=$token';
     if (voice != null && voice.isNotEmpty) {
       url += '&voice=${Uri.encodeComponent(voice)}';
     }
+    if (prompt != null && prompt.isNotEmpty) {
+      url += '&prompt=${Uri.encodeComponent(prompt)}';
+    }
     final uri = Uri.parse(url);
-    log('WebSocket 连接: $uri');
+    print('🔴[ws] 连接: $uri');
+    await _channelSubscription?.cancel();
+    _channelSubscription = null;
     _channel = WebSocketChannel.connect(uri);
 
-    _channel!.stream.listen(
+    _channelSubscription = _channel!.stream.listen(
       (event) {
         try {
-          if (event is List<int>) {
-            log('收到二进制帧, 长度=${event.length}');
-            _handleBinary(event);
+          // event 可能是 String（文本帧）或 List<int>（二进制帧）
+          String text;
+          if (event is String) {
+            text = event;
+          } else if (event is List) {
+            text = utf8.decode(List<int>.from(event));
           } else {
-            final text = event.toString();
-            log('收到文本: ${text.length > 200 ? text.substring(0, 200) : text}');
-            final data = jsonDecode(text) as Map<String, dynamic>;
-            _handleMessage(data);
+            text = event.toString();
           }
+          print('🔴[ws] 收到: ${text.length > 300 ? text.substring(0, 300) : text}');
+          final data = jsonDecode(text) as Map<String, dynamic>;
+          _handleMessage(data);
         } catch (e) {
           log('WebSocket 消息处理错误: $e');
         }
       },
       onError: (error) {
         log('WebSocket 错误: $error');
-        _messageController.add({'type': 'error', 'error': error.toString()});
+        _messageController.add({'type': 'error', 'message': error.toString()});
       },
       onDone: () {
         log('WebSocket 关闭');
@@ -58,108 +75,39 @@ class WebSocketService {
     );
   }
 
-  void _handleBinary(List<int> bytes) {
-    try {
-      final text = utf8.decode(bytes);
-      final trimmed = text.trim();
-      if (trimmed.startsWith('{')) {
-        final data = jsonDecode(text) as Map<String, dynamic>;
-        _handleMessage(data);
-        return;
-      }
-    } catch (_) {}
-    _audioController.add(bytes);
-  }
-
   void _handleMessage(Map<String, dynamic> data) {
     final type = data['type']?.toString() ?? '';
-    log('收到消息类型: $type');
 
-    if (type == 'response.created') {
-      _currentResponseId = data['response_id']?.toString();
-      log('当前响应 id: $_currentResponseId');
-    } else if (type == 'response.done' ||
-        type == 'response.cancelled' ||
-        type == 'response.output_item.done') {
-      _currentResponseId = null;
-    }
-
-    if (type == 'response.audio.delta') {
-      final delta = data['delta']?.toString() ?? '';
-      if (delta.isNotEmpty) {
-        final responseId = data['response_id']?.toString();
-        if (_currentResponseId != null &&
-            responseId != null &&
-            responseId != _currentResponseId) {
-          log('忽略过期 response 音频: $responseId');
-        } else {
-          final bytes = AudioUtils.base64ToBytes(delta);
-          log('收到 response.audio.delta, ${bytes.length} bytes');
-          _audioController.add(bytes.toList());
-        }
+    if (type == 'tts.audio') {
+      final audioBase64 = data['audio']?.toString() ?? '';
+      if (audioBase64.isNotEmpty) {
+        final bytes = AudioUtils.base64ToBytes(audioBase64);
+        _audioController.add(bytes.toList());
       }
+      return; // 音频不入 message 流
     }
 
     _messageController.add(data);
   }
 
-  void sendConfig({String? voice}) {
-    final config = {
-      'event_id': 'event_${DateTime.now().millisecondsSinceEpoch}',
-      'type': 'session.update',
-      'session': {
-        'modalities': ['text', 'audio'],
-        'instructions': '你是北斗星AI，一个 helpful 的语音助手，请用中文回答用户问题。',
-        'voice': voice ?? 'coral',
-        // 'inf' 表示不限制单次回复长度；整数上限只有 4096，约等于 30 秒语音，
-        // 会导致 AI 说到 30 秒左右被服务端强制截断。
-        'max_response_output_tokens': 'inf',
-        'turn_detection': {
-          'type': 'server_vad',
-          'threshold': 0.4,
-          'prefix_padding_ms': 300,
-          'silence_duration_ms': 1200,
-        },
-      },
-    };
-    log('发送 session.update: $config');
-    send(config);
-  }
-
-  void updateVadThreshold(double threshold) {
-    if ((threshold - _currentVadThreshold).abs() < 0.001) {
-      return;
-    }
-    _currentVadThreshold = threshold;
-    final config = {
-      'event_id': 'event_${DateTime.now().millisecondsSinceEpoch}',
-      'type': 'session.update',
-      'session': {
-        'turn_detection': {
-          'type': 'server_vad',
-          'threshold': threshold,
-          'prefix_padding_ms': 300,
-          'silence_duration_ms': 1200,
-        },
-      },
-    };
-    log('发送 VAD threshold=$threshold');
-    send(config);
-  }
-
-  int _audioSendCount = 0;
-  int get audioSendCount => _audioSendCount;
-
+  /// 发送录音 PCM16 音频块（base64）
   void sendAudio(List<int> pcmData) {
     final base64 = AudioUtils.bytesToBase64(Uint8List.fromList(pcmData));
     _audioSendCount++;
-    if (_audioSendCount <= 3 || _audioSendCount % 100 == 0) {
-      log('发送 input_audio_buffer.append #$_audioSendCount, ${pcmData.length} bytes');
+    if (_audioSendCount <= 5) {
+      print('🔴[ws] sendAudio #$_audioSendCount, ${pcmData.length} bytes, ws状态=${_channel?.closeCode}');
     }
-    send({
-      'type': 'input_audio_buffer.append',
-      'audio': base64,
-    });
+    send({'type': 'audio', 'audio': base64});
+  }
+
+  /// 通知结束（可选，依赖静音 VAD）
+  void sendAudioEnd() {
+    send({'type': 'audio.end'});
+  }
+
+  /// 停止通话
+  void sendStop() {
+    send({'type': 'stop'});
   }
 
   void send(Map<String, dynamic> data) {
@@ -168,8 +116,8 @@ class WebSocketService {
       return;
     }
     final text = jsonEncode(data);
-    if (data['type'] != 'input_audio_buffer.append') {
-      log('发送: ${text.length > 200 ? text.substring(0, 200) : text}');
+    if (data['type'] != 'audio') {
+      log('发送: $text');
     }
     try {
       _channel!.sink.add(text);
@@ -180,7 +128,8 @@ class WebSocketService {
 
   void disconnect() {
     log('WebSocket 断开');
-    _currentResponseId = null;
+    _channelSubscription?.cancel();
+    _channelSubscription = null;
     try {
       _channel?.sink.close();
     } catch (e) {
@@ -189,8 +138,6 @@ class WebSocketService {
     _channel = null;
   }
 
-  /// 应用退出时调用。关闭 channel 和 controller；
-  /// 此后该实例不可复用，如需重新连接请重新实例化服务。
   void dispose() {
     disconnect();
     if (!_messageController.isClosed) _messageController.close();

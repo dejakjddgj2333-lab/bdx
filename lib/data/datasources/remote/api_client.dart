@@ -1,5 +1,4 @@
 import 'package:dio/dio.dart';
-import 'package:flutter/foundation.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import '../../../core/constants/api_constants.dart';
 import '../local/secure_storage.dart';
@@ -26,7 +25,6 @@ class ApiClient {
           if (token != null && token.isNotEmpty) {
             options.headers['Authorization'] = 'Bearer $token';
           }
-          debugPrint('[ApiClient] ${options.method} ${options.path} 使用 token=${token != null && token.isNotEmpty ? token.substring(0, token.length > 16 ? 16 : token.length) : '无'}');
           handler.next(options);
         },
         onResponse: (response, handler) {

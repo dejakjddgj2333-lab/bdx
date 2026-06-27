@@ -9,6 +9,9 @@ class AiMessage extends StatelessWidget {
   final dynamic content;
   final String? model;
 
+  /// 提取代码块的正则。提为 static final 避免每次 build 重新编译。
+  static final RegExp _codeBlockPattern = RegExp(r'```([^\n]*)\n([\s\S]*?)```');
+
   const AiMessage({super.key, this.content, this.model});
 
   @override
@@ -68,7 +71,7 @@ class AiMessage extends StatelessWidget {
     }
 
     final widgets = <Widget>[];
-    final pattern = RegExp(r'```([^\n]*)\n([\s\S]*?)```');
+    final pattern = _codeBlockPattern;
     var lastEnd = 0;
 
     for (final match in pattern.allMatches(text)) {

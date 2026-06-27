@@ -131,7 +131,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     }
     debugPrint('[AuthBloc] 开始获取用户信息...');
     final user = await _authRepository.getProfile();
-    debugPrint('[AuthBloc] 获取用户信息完成: id=${user?.id}, username=${user?.username}, nickname=${user?.nickname}');
+    debugPrint('[AuthBloc] 获取用户信息完成: $user');
     emit(AuthAuthenticated(user));
   }
 }

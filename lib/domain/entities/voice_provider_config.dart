@@ -35,13 +35,13 @@ class VoiceProviderConfig {
         : <String, String>{};
 
     return VoiceProviderConfig(
-      provider: json['provider']?.toString() ?? 'qwen',
-      name: json['name']?.toString() ?? '阿里百炼实时多模态',
+      provider: json['provider']?.toString() ?? 'ark',
+      name: json['name']?.toString() ?? '火山方舟语音',
       realtimeModel: json['realtime_model']?.toString(),
-      voices: voices.isEmpty ? const ['Tina'] : voices,
+      voices: voices.isEmpty ? const ['zh_female_vv_uranus_bigtts'] : voices,
       voiceLabels: labels,
       voiceIntros: intros,
-      defaultVoice: json['default_voice']?.toString() ?? voices.firstOrNull ?? 'Tina',
+      defaultVoice: json['default_voice']?.toString() ?? voices.firstOrNull ?? 'zh_female_vv_uranus_bigtts',
     );
   }
 

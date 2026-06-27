@@ -12,8 +12,24 @@ import '../../widgets/app_header.dart';
 import '../../widgets/bdx/bdx.dart';
 import '../../widgets/tech_background.dart';
 
-class SettingsPage extends StatelessWidget {
+class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
+
+  @override
+  State<SettingsPage> createState() => _SettingsPageState();
+}
+
+class _SettingsPageState extends State<SettingsPage> {
+  @override
+  void initState() {
+    super.initState();
+    // 进入设置页即加载语音音色配置，避免在 build 中触发副作用。
+    final cubit = context.read<VoiceCallSettingsCubit>();
+    final state = cubit.state;
+    if (!state.isLoaded && !state.isLoading && state.error == null) {
+      cubit.load();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -161,10 +177,6 @@ class SettingsPage extends StatelessWidget {
       padding: AppDimens.cardPadding,
       child: BlocBuilder<VoiceCallSettingsCubit, VoiceCallSettingsState>(
         builder: (context, state) {
-          if (!state.isLoaded && !state.isLoading && state.error == null) {
-            context.read<VoiceCallSettingsCubit>().load();
-          }
-
           if (state.error != null) {
             return Text(
               '加载失败：${state.error}',
